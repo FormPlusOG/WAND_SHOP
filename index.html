@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0716">
+<title>The Wand Shop</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; overscroll-behavior:none; touch-action:none;
+               -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+               font-family:Georgia,'Times New Roman',serif; color:#f3e6c4; }
+  #video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1);
+           filter:brightness(.8) contrast(1.06) sepia(.2) saturate(.95); background:#000; }
+  #fx { position:fixed; inset:0; width:100%; height:100%; }
+  #vignette { position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 42%, rgba(12,6,28,.55) 78%, rgba(4,2,12,.94) 100%);
+    box-shadow:inset 0 0 140px 50px rgba(18,8,38,.75); }
+  #vignette::after { content:''; position:absolute; inset:16px; border-radius:20px;
+    border:1px solid rgba(255,215,130,.28); box-shadow:0 0 22px rgba(255,200,100,.18), inset 0 0 22px rgba(255,200,100,.12); }
+  #dot { position:fixed; left:12px; bottom:12px; width:6px; height:6px; border-radius:50%; background:#ffd57a; opacity:.2; z-index:5; pointer-events:none; }
+  #dot.fizzle { background:#9a9a9f; }
+  #dot.hidden { display:none; }
+  #hot { position:fixed; left:0; bottom:0; width:96px; height:96px; z-index:7; }
+  #toast { position:fixed; left:50%; bottom:34px; transform:translateX(-50%); padding:6px 16px; border-radius:14px; background:rgba(10,5,25,.7);
+           font-size:14px; letter-spacing:.06em; opacity:0; transition:opacity .4s; pointer-events:none; z-index:30; text-align:center; max-width:90vw; }
+  #dbg { position:fixed; top:14px; right:14px; width:320px; border:1px solid #ffd57a; display:none; z-index:6; image-rendering:pixelated; background:#000; pointer-events:none; }
+
+  #intro { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; overflow:auto;
+           background:radial-gradient(circle at 50% 40%, #2a1b52 0%, #0b0716 70%); }
+  .card { max-width:540px; margin:20px; padding:28px 30px; border:1px solid rgba(255,215,130,.45); border-radius:18px; text-align:center;
+          background:rgba(15,9,32,.78); box-shadow:0 0 50px rgba(255,200,100,.15); }
+  .card h1 { margin:0 0 6px; font-weight:normal; font-size:32px; letter-spacing:.2em; text-transform:uppercase; color:#ffd57a; }
+  .card p { margin:10px 0; line-height:1.5; opacity:.9; }
+  .swatches { display:flex; gap:14px; justify-content:center; margin:14px 0; }
+  .swatches i { width:22px; height:22px; border-radius:50%; display:block; box-shadow:0 0 14px currentColor; }
+  .go { margin:8px 6px 0; padding:14px 24px; font:inherit; font-size:17px; letter-spacing:.1em; text-transform:uppercase; color:#1a0f33;
+        background:linear-gradient(#ffe29a,#e7ae45); border:0; border-radius:30px; cursor:pointer; box-shadow:0 0 24px rgba(255,200,100,.5); }
+  .go:disabled { opacity:.5; }
+  details { margin-top:16px; font-size:13px; text-align:left; opacity:.85; }
+  details summary { cursor:pointer; text-align:center; }
+  details li { margin:4px 0; }
+  #err { color:#ff9c9c; font-size:14px; min-height:18px; }
+
+  #panel { position:fixed; inset:0; z-index:20; background:rgba(5,2,15,.82); display:flex; align-items:center; justify-content:center; touch-action:pan-y; }
+  #panel[hidden] { display:none; }
+  .pbox { width:min(560px,94vw); max-height:92vh; overflow:auto; padding:16px 20px; border:1px solid rgba(255,215,130,.45); border-radius:16px; background:rgba(15,9,32,.96); }
+  .pbox h2 { margin:0 0 8px; font-weight:normal; letter-spacing:.14em; text-transform:uppercase; color:#ffd57a; font-size:18px; }
+  .prow { margin:12px 0 2px; font-size:14px; }
+  .pbox button { min-height:44px; padding:8px 14px; margin:4px 4px 4px 0; border-radius:10px; border:1px solid #6b5a9e; background:#20153f; color:#f3e6c4; font:inherit; font-size:15px; }
+  .pbox button.on { background:#e7ae45; color:#1a0f33; border-color:#ffd57a; }
+  .pbox .small { font-size:12px; opacity:.7; margin:2px 0; }
+</style>
+</head>
+<body>
+<video id="video" playsinline muted autoplay></video>
+<canvas id="fx"></canvas>
+<div id="vignette"></div>
+<canvas id="dbg"></canvas>
+<div id="dot"></div>
+<div id="hot"></div>
+<div id="toast"></div>
+
+<div id="intro">
+  <div class="card">
+    <h1>The Wand Shop</h1>
+    <p>Step up to the magic mirror, pick a wand from the table, and see if the wand chooses <i>you</i>.</p>
+    <div class="swatches">
+      <i style="color:#ff5a2a;background:#ff5a2a"></i><i style="color:#4aa8ff;background:#4aa8ff"></i><i style="color:#3dff95;background:#3dff95"></i>
+    </div>
+    <p style="font-size:14px">Each wand has a brightly coloured tip (red, blue or green). Good lighting helps the mirror spot it.</p>
+    <div id="err"></div>
+    <button class="go" id="beginRear">Rear camera</button>
+    <button class="go" id="beginFront">Front camera</button>
+    <details>
+      <summary>Grown-up notes</summary>
+      <ul>
+        <li><b>Hidden controls:</b> triple-tap the bottom-left corner of the screen (or press <b>A</b>) to open the grown-up panel: choose which wand colour is "the one", re-roll for the next child, force a rejection, switch camera, tune sensitivity and calibrate the tape colours.</li>
+        <li>On an iPhone: turn the ring/silent switch off, turn the volume up and use landscape. Screen-mirror or AirPlay to the TV. Add to Home Screen for a full-screen view.</li>
+        <li>Keys on a keyboard: <b>Space</b> force reject, <b>N</b> new wizard, <b>&uarr;/&darr;</b> sensitivity, <b>D</b> debug view, <b>H</b> hide status dot, <b>M</b> mouse wand (keys 1, 2, 3 choose colour), <b>F</b> full screen.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<div id="panel" hidden>
+  <div class="pbox">
+    <h2>Grown-up controls</h2>
+    <div class="prow"><b>Which wand colour chooses the wizard?</b></div>
+    <div id="chooseBtns">
+      <button data-c="random">Random</button><button data-c="red">Red</button><button data-c="green">Green</button><button data-c="blue">Blue</button><button data-c="free">Free play</button>
+    </div>
+    <div class="prow">
+      <button id="newWizard">New wizard (re-roll)</button>
+      <span>Chosen: <b id="chosenLbl">&bull;&bull;&bull;&bull;</b></span> <button id="reveal">Reveal</button>
+    </div>
+    <div class="prow"><button id="forceBtn">Force reject: off</button></div>
+
+    <div class="prow"><b>Camera</b></div>
+    <div><button id="camFront">Front</button><button id="camRear">Rear</button><button id="mirrorBtn">Mirror: on</button></div>
+
+    <div class="prow"><b>Sensitivity</b> <button id="sensMinus">&minus;</button><b id="sensVal">50%</b><button id="sensPlus">+</button></div>
+
+    <div class="prow"><b>Calibrate wand tips</b></div>
+    <p class="small">Tap a colour, then hold that wand tip inside the circle on screen for 3 seconds. Useful for coloured tape.</p>
+    <div><button data-cal="0">Red</button><button data-cal="1">Green</button><button data-cal="2">Blue</button><button id="calReset">Reset</button></div>
+
+    <div class="prow">
+      <button id="dbgBtn">Debug view</button><button id="dotBtn">Hide status dot</button><button id="closeBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const TAU = Math.PI * 2;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const jx = () => Math.random() - 0.5;
+const video = $('video'), fx = $('fx'), ctx = fx.getContext('2d');
+let W = 0, H = 0, DPR = 1, diag = 1;
+
+/* ---------------- settings (remembered on this device) ---------------- */
+const cfg = { facing: 'rear', mirror: true, sens: 0.5, choose: 'random', calib: {}, dotHidden: false };
+try { Object.assign(cfg, JSON.parse(localStorage.getItem('wandShopCfg') || '{}')); } catch (e) {}
+function saveCfg() { try { localStorage.setItem('wandShopCfg', JSON.stringify(cfg)); } catch (e) {} }
+
+/* ---------------- toast ---------------- */
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.opacity = 0; }, 1800);
+}
+
+/* ---------------- sprites ---------------- */
+function makeGlow(rgb, size = 64) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gr.addColorStop(0, `rgba(${rgb},1)`);
+  gr.addColorStop(.25, `rgba(${rgb},.55)`);
+  gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, size, size);
+  return c;
+}
+const S = {
+  fire: makeGlow('255,110,30'), fireHot: makeGlow('255,210,90'),
+  ice: makeGlow('90,170,255'), iceHot: makeGlow('215,240,255'),
+  leaf: makeGlow('60,255,150'), leafHot: makeGlow('190,255,150'),
+  gold: makeGlow('255,215,120'), goldHot: makeGlow('255,245,200'),
+  gray: makeGlow('205,205,205'), smoke: makeGlow('120,120,125')
+};
+const MODES = {
+  red:     { trail: '255,110,40',  core: '255,235,170', glow: 'fire', hot: 'fireHot' },
+  blue:    { trail: '110,180,255', core: '235,248,255', glow: 'ice',  hot: 'iceHot'  },
+  green:   { trail: '70,255,160',  core: '225,255,205', glow: 'leaf', hot: 'leafHot' },
+  fizzle:  { trail: '170,170,175', core: '215,215,220', glow: 'gray', hot: 'gray'    },
+  testing: { trail: '255,230,170', core: '255,250,230', glow: 'gold', hot: 'goldHot' }
+};
+
+/* ---------------- resize / motes ---------------- */
+let motes = [];
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight; diag = Math.hypot(W, H);
+  fx.width = W * DPR; fx.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  motes = [];
+  for (let i = 0; i < 70; i++) motes.push({
+    x: Math.random() * W, y: Math.random() * H, r: 1 + Math.random() * 2.8,
+    ph: Math.random() * TAU, sp: 6 + Math.random() * 14
+  });
+}
+addEventListener('resize', resize); resize();
+
+function drawMotes(now, dt) {
+  const t = now / 1000;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of motes) {
+    m.y -= m.sp * dt * 0.6; m.x += Math.sin(t * 0.3 + m.ph) * 8 * dt;
+    if (m.y < -10) { m.y = H + 10; m.x = Math.random() * W; }
+    if (m.x < -10) m.x = W + 10;
+    if (m.x > W + 10) m.x = -10;
+    const tw = 0.25 + 0.4 * (0.5 + 0.5 * Math.sin(t * 1.6 + m.ph));
+    ctx.globalAlpha = tw;
+    const s = m.r * 9;
+    ctx.drawImage(S.gold, m.x - s / 2, m.y - s / 2, s, s);
+    ctx.globalAlpha = Math.min(1, tw * 1.6);
+    const c = m.r * 2.2;
+    ctx.drawImage(S.gold, m.x - c / 2, m.y - c / 2, c, c);
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ---------------- colour tracking ---------------- */
+const DW = 160; let DH = 90;
+const oc = document.createElement('canvas');
+const octx = oc.getContext('2d', { willReadFrequently: true });
+const dbg = $('dbg'), dbgctx = dbg.getContext('2d');
+let dbgImg = null, debug = false;
+
+function sizeDetect() {
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+  DH = Math.max(1, Math.round(DW * vh / vw));
+  oc.width = DW; oc.height = DH; dbg.width = DW; dbg.height = DH;
+  dbgImg = dbgctx.createImageData(DW, DH);
+}
+sizeDetect();
+video.addEventListener('loadedmetadata', sizeDetect);
+video.addEventListener('resize', sizeDetect);
+
+function toScreen(cx, cy) {
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+  const scale = Math.max(W / vw, H / vh);
+  const dispW = vw * scale, dispH = vh * scale;
+  return { x: (W - dispW) / 2 + (cx / DW) * dispW, y: (H - dispH) / 2 + (cy / DH) * dispH };
+}
+
+const COLORS = ['red', 'green', 'blue'];
+const DBGC = [[255, 80, 60], [60, 255, 120], [80, 150, 255]];
+const DEF = [{ h: 0, hr: 20 }, { h: 135, hr: 38 }, { h: 225, hr: 32 }];
+
+function profile(k) {
+  const c = cfg.calib[COLORS[k]], s = cfg.sens;
+  if (c) return { h: c.h, hr: c.hr || 18, sMin: Math.max(0.2, c.s * 0.65 - (s - 0.5) * 0.2), vMin: Math.max(0.2, c.v * 0.6 - (s - 0.5) * 0.2) };
+  return { h: DEF[k].h, hr: DEF[k].hr, sMin: 0.75 - 0.3 * s, vMin: 0.9 - 0.3 * s };
+}
+function hueOf(r, g, b, mx, dlt) {
+  let h;
+  if (mx === r) h = 60 * (((g - b) / dlt) % 6);
+  else if (mx === g) h = 60 * ((b - r) / dlt + 2);
+  else h = 60 * ((r - g) / dlt + 4);
+  return h < 0 ? h + 360 : h;
+}
+function drawFrame() {
+  octx.save();
+  if (cfg.mirror) { octx.translate(DW, 0); octx.scale(-1, 1); }   // match what is shown on screen
+  octx.drawImage(video, 0, 0, DW, DH);
+  octx.restore();
+}
+function detect() {
+  if (video.readyState < 2 || !video.videoWidth) return null;
+  drawFrame();
+  const d = octx.getImageData(0, 0, DW, DH).data;
+  const pr = [profile(0), profile(1), profile(2)];
+  const minV = Math.min(pr[0].vMin, pr[1].vMin, pr[2].vMin) * 255, minS = Math.min(pr[0].sMin, pr[1].sMin, pr[2].sMin);
+  const acc = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const dd = debug && dbgImg ? dbgImg.data : null;
+  if (dd) dd.fill(0);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+    if (mx < minV) continue;
+    const mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+    const dlt = mx - mn, s = dlt / mx;
+    if (s < minS) continue;
+    const v = mx / 255, h = hueOf(r, g, b, mx, dlt);
+    let k = -1;
+    for (let j = 0; j < 3; j++) {
+      const q = pr[j];
+      if (s >= q.sMin && v >= q.vMin) {
+        let dh = h - q.h; if (dh < 0) dh = -dh; if (dh > 180) dh = 360 - dh;
+        if (dh <= q.hr) { k = j; break; }
+      }
+    }
+    if (k < 0) continue;
+    acc[k * 3]++; acc[k * 3 + 1] += p % DW; acc[k * 3 + 2] += (p / DW) | 0;
+    if (dd) { dd[p * 4] = DBGC[k][0]; dd[p * 4 + 1] = DBGC[k][1]; dd[p * 4 + 2] = DBGC[k][2]; dd[p * 4 + 3] = 255; }
+  }
+  if (dd) dbgctx.putImageData(dbgImg, 0, 0);
+  let best = -1, bn = 2;
+  for (let k = 0; k < 3; k++) if (acc[k * 3] > bn) { bn = acc[k * 3]; best = k; }
+  if (best < 0) return null;
+  const s = toScreen(acc[best * 3 + 1] / bn + 0.5, acc[best * 3 + 2] / bn + 0.5);
+  return { color: COLORS[best], x: s.x, y: s.y };
+}
+
+/* learn the colour of a tip held in the centre of the picture */
+function sampleColor(k) {
+  if (video.readyState < 2 || !video.videoWidth) return false;
+  drawFrame();
+  const R = 7, d = octx.getImageData((DW >> 1) - R, (DH >> 1) - R, 2 * R, 2 * R).data;
+  let sx = 0, sy = 0, ss = 0, sv = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if (!mx) continue;
+    const dlt = mx - mn, s = dlt / mx, v = mx / 255;
+    if (s < 0.25 || v < 0.25) continue;
+    const h = hueOf(r, g, b, mx, dlt) * Math.PI / 180;
+    sx += Math.cos(h) * s; sy += Math.sin(h) * s; ss += s; sv += v; n++;
+  }
+  if (n < 20) return false;
+  let h = Math.atan2(sy, sx) * 180 / Math.PI; if (h < 0) h += 360;
+  cfg.calib[COLORS[k]] = { h: Math.round(h), s: ss / n, v: sv / n, hr: 18 };
+  saveCfg();
+  return true;
+}
+
+/* mouse "wand" fallback (handy for testing) */
+let mouseMode = false, mouseX = 0, mouseY = 0, mouseT = -1e9, mouseColor = 'red';
+addEventListener('pointermove', (e) => { mouseX = e.clientX; mouseY = e.clientY; mouseT = performance.now(); });
+function getDetection(now) {
+  if (mouseMode) return now - mouseT < 1500 ? { color: mouseColor, x: mouseX, y: mouseY } : null;
+  return detect();
+}
+
+/* ---------------- wand-chooses-the-wizard state ---------------- */
+const WAIT = 600;                       // ms of "the wand is considering you…"
+let tip = { x: 0, y: 0 }, prevTip = { x: 0, y: 0 }, vel = { x: 0, y: 0 }, speed = 0;
+let tracking = false, lastSeen = 0, mode = 'red', pendCount = 0, trackStart = 0;
+let verdict = 'none';                   // none | chosen | rejected | free
+let chosen = 'red', forceFizzle = false, revealed = false;
+let running = false, em = 0, boltT = 0, flash = 0, goldFlash = 0, runeT = 0;
+let lastAcquireSound = -1e9, lastVm = 'testing', calib = null;
+let qual = 1, dtEma = 0.016, maxP = 1800;
+
+function rollChosen() {
+  if (cfg.choose === 'random') chosen = COLORS[(Math.random() * 3) | 0];
+  else if (COLORS.includes(cfg.choose)) chosen = cfg.choose;
+}
+
+function updateTracking(det, now, dt) {
+  if (det) {
+    if (!tracking) {
+      tip.x = det.x; tip.y = det.y; prevTip.x = tip.x; prevTip.y = tip.y; vel.x = vel.y = 0;
+      mode = det.color; pendCount = 0; tracking = true; trackStart = now; verdict = 'none'; onAcquire(now);
+    } else {
+      tip.x += (det.x - tip.x) * 0.55; tip.y += (det.y - tip.y) * 0.55;
+      if (det.color !== mode) {
+        if (++pendCount >= 2) { mode = det.color; pendCount = 0; verdict = 'none'; trackStart = now; }
+      } else pendCount = 0;
+    }
+    lastSeen = now;
+  } else if (tracking && now - lastSeen > 180) {
+    tracking = false; speed = 0;
+  }
+  if (tracking) {
+    const nvx = (tip.x - prevTip.x) / Math.max(dt, 0.001), nvy = (tip.y - prevTip.y) / Math.max(dt, 0.001);
+    vel.x = vel.x * 0.6 + nvx * 0.4; vel.y = vel.y * 0.6 + nvy * 0.4;
+    speed = Math.hypot(vel.x, vel.y);
+    prevTip.x = tip.x; prevTip.y = tip.y;
+  }
+}
+
+function judge(now) {
+  if (!tracking) { if (verdict !== 'none' && now - lastSeen > 2000) verdict = 'none'; return; }
+  if (verdict !== 'none') return;
+  if (cfg.choose === 'free' && !forceFizzle) { verdict = 'free'; return; }
+  if (now - trackStart < WAIT) return;
+  if (forceFizzle || mode !== chosen) { verdict = 'rejected'; onReject(now); }
+  else { verdict = 'chosen'; onChosen(now); }
+}
+
+/* ---------------- particles ---------------- */
+const P = [], B = [], rings = [];
+let burst = null, banner = null;
+function sp(o) {
+  if (P.length > maxP) return;
+  P.push(Object.assign({ x: 0, y: 0, vx: 0, vy: 0, size: 10, sp: 'gold', type: 'glow', rot: 0, vr: 0,
+                         grav: 0, drag: 0, swirl: 0, grow: 0, a: 1, sway: 0, seed: Math.random() * 100,
+                         col: 'rgba(215,255,200,1)' }, o, { max: o.life }));
+}
+
+function makeRune() {
+  const g = [[0, -1, 0, 1]], n = 1 + ((Math.random() * 3) | 0);
+  for (let i = 0; i < n; i++) {
+    const y = rnd(-1, 0.4), dir = Math.random() < 0.5 ? -1 : 1, dy = rnd(0.4, 0.9) * (Math.random() < 0.5 ? 1 : -1);
+    g.push([0, y, dir * rnd(0.5, 0.8), y + dy]);
+  }
+  if (Math.random() < 0.4) { const y = rnd(-0.4, 0.4); g.push([-0.6, y, 0.6, y]); }
+  return g;
+}
+function spawnRune(x, y, big) {
+  sp({ type: 'rune', x, y, vx: jx() * 20, vy: -rnd(25, 70), life: rnd(2.2, 3.6), size: rnd(18, 40) * (big ? 1.4 : 1),
+       rot: jx() * 0.5, vr: jx() * 0.4, glyph: makeRune(), drag: 0.05 });
+}
+
+function emitFor(m, dt) {
+  const sn = Math.min(speed / diag, 1.5);
+  em += (70 + sn * 420) * dt * qual;
+  const chosenOn = verdict === 'chosen' && m !== 'fizzle';
+  while (em >= 1) {
+    em--;
+    const r = Math.random(), x = tip.x + jx() * 12, y = tip.y + jx() * 12;
+    if (m === 'red') {
+      if (r < 0.55) sp({ x, y, vx: jx() * 90 - vel.x * 0.05, vy: -rnd(40, 170), life: rnd(.5, 1.3), size: rnd(14, 40), sp: 'fire', grav: -30, drag: .8, grow: -8 });
+      else if (r < 0.9) sp({ x, y, vx: jx() * 160, vy: -rnd(60, 280), life: rnd(.8, 1.8), size: rnd(5, 12), sp: 'fireHot', grav: -20, drag: .5, sway: 160 });
+      else sp({ x, y, vx: jx() * 220, vy: jx() * 220, life: rnd(.3, .6), size: rnd(4, 8), sp: 'fireHot', drag: 1.5 });
+    } else if (m === 'blue') {
+      if (r < 0.3) sp({ type: 'crystal', x, y, vx: jx() * 240, vy: jx() * 240 - 20, grav: 140, drag: .6, rot: rnd(0, TAU), vr: jx() * 10, size: rnd(7, 17), life: rnd(.8, 1.7) });
+      else if (r < 0.8) sp({ x, y, vx: jx() * 320, vy: jx() * 320, life: rnd(.3, .7), size: rnd(4, 11), sp: 'iceHot', drag: 1.6 });
+      else sp({ x, y, vx: jx() * 50, vy: jx() * 50, life: rnd(.4, .8), size: rnd(20, 36), sp: 'ice', drag: 1 });
+    } else if (m === 'green') {
+      const a = rnd(0, TAU), v = rnd(60, 150);
+      if (r < 0.3) sp({ type: 'leaf', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, swirl: (Math.random() < .5 ? -1 : 1) * rnd(2.5, 4.5), grav: 25, drag: .35, rot: rnd(0, TAU), vr: jx() * 8, size: rnd(9, 18), life: rnd(1.1, 2.1) });
+      else if (r < 0.55) sp({ type: 'star', x, y, vx: Math.cos(a) * v * .8, vy: Math.sin(a) * v * .8, vr: jx() * 3, size: rnd(7, 15), life: rnd(.6, 1.3), drag: .6 });
+      else sp({ x, y, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40 - 30, swirl: rnd(-3, 3), life: rnd(.5, .95), size: rnd(10, 24), sp: 'leaf', drag: .8 });
+    } else if (m === 'fizzle') {
+      if (r < 0.45) sp({ type: 'smoke', x, y, vx: jx() * 50, vy: -rnd(35, 95), life: rnd(1.1, 2.1), size: rnd(30, 70), grow: rnd(30, 60), a: .38, drag: .5, sp: 'smoke' });
+      else sp({ x, y, vx: jx() * 280, vy: -rnd(20, 140), grav: 280, life: rnd(.35, .85), size: rnd(4, 8), sp: 'gray', a: .8, drag: .4 });
+    } else { // testing: the wand is considering
+      sp({ x, y, vx: jx() * 120, vy: jx() * 120 - 20, life: rnd(.4, .9), size: rnd(4, 10), sp: 'goldHot', drag: 1.2, a: .8 });
+    }
+    if (chosenOn && Math.random() < 0.3) {
+      if (Math.random() < 0.5) sp({ type: 'star', col: 'rgba(255,232,160,1)', x, y, vx: jx() * 200, vy: jx() * 200 - 40, vr: jx() * 3, size: rnd(6, 14), life: rnd(.6, 1.3), drag: .7 });
+      else sp({ x, y, vx: jx() * 220, vy: jx() * 220 - 40, life: rnd(.5, 1.1), size: rnd(5, 12), sp: 'goldHot', drag: 1 });
+    }
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = P.length - 1; i >= 0; i--) {
+    const p = P[i];
+    p.life -= dt;
+    if (p.life <= 0) { P[i] = P[P.length - 1]; P.pop(); continue; }
+    if (p.swirl) { const c = Math.cos(p.swirl * dt), s = Math.sin(p.swirl * dt); const vx = p.vx * c - p.vy * s; p.vy = p.vx * s + p.vy * c; p.vx = vx; }
+    if (p.sway) p.vx += Math.sin(p.life * 9 + p.seed) * p.sway * dt;
+    p.vx *= Math.max(0, 1 - p.drag * dt); p.vy *= Math.max(0, 1 - p.drag * dt);
+    p.vy += p.grav * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+    if (p.grow) p.size = Math.max(1, p.size + p.grow * dt);
+  }
+  for (let i = B.length - 1; i >= 0; i--) { B[i].life -= dt; if (B[i].life <= 0) B.splice(i, 1); }
+  flash = Math.max(0, flash - dt * 0.6);
+  goldFlash = Math.max(0, goldFlash - dt * 0.5);
+}
+
+function starPath(s) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const r = i % 2 ? s * 0.3 : s, a = i * Math.PI / 4 - Math.PI / 2;
+    i ? ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  ctx.closePath();
+}
+
+function drawParticles() {
+  ctx.globalCompositeOperation = 'source-over';
+  for (const p of P) if (p.type === 'smoke') {
+    ctx.globalAlpha = p.a * (p.life / p.max);
+    ctx.drawImage(S.smoke, p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of P) {
+    if (p.type === 'smoke') continue;
+    const k = p.life / p.max;
+    if (p.type === 'glow') {
+      ctx.globalAlpha = Math.min(1, k * 1.4) * p.a;
+      ctx.drawImage(S[p.sp], p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    } else if (p.type === 'crystal') {
+      const s = p.size;
+      ctx.globalAlpha = Math.min(1, k * 1.5) * 0.5;
+      ctx.drawImage(S.ice, p.x - s * 1.5, p.y - s * 1.5, s * 3, s * 3);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.min(1, k * 1.5);
+      ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s * .55, 0); ctx.lineTo(0, s); ctx.lineTo(-s * .55, 0); ctx.closePath();
+      ctx.fillStyle = 'rgba(150,210,255,.55)'; ctx.strokeStyle = 'rgba(235,250,255,.95)'; ctx.lineWidth = 1.2;
+      ctx.fill(); ctx.stroke(); ctx.restore();
+    } else if (p.type === 'leaf') {
+      const s = p.size;
+      ctx.globalAlpha = Math.min(1, k * 1.5) * 0.4;
+      ctx.drawImage(S.leaf, p.x - s, p.y - s, s * 2, s * 2);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = Math.min(1, k * 1.5);
+      ctx.beginPath(); ctx.ellipse(0, 0, s, s * .45, 0, 0, TAU); ctx.fillStyle = 'rgba(70,225,130,.8)'; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-s, 0); ctx.lineTo(s, 0); ctx.strokeStyle = 'rgba(220,255,200,.8)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+    } else if (p.type === 'star') {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.min(1, k * 1.5) * (0.6 + 0.4 * Math.sin(p.life * 30 + p.seed));
+      starPath(p.size); ctx.fillStyle = p.col; ctx.fill(); ctx.restore();
+    } else if (p.type === 'rune') {
+      const a = Math.max(0, Math.min(1, (1 - k) * 5, k * 1.6)), s = p.size;
+      ctx.globalAlpha = a * 0.5;
+      ctx.drawImage(S.gold, p.x - s * 1.4, p.y - s * 1.4, s * 2.8, s * 2.8);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = a * (0.8 + 0.2 * Math.sin(p.life * 12 + p.seed));
+      ctx.strokeStyle = 'rgba(255,228,150,1)'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const g of p.glyph) { ctx.moveTo(g[0] * s * .5, g[1] * s * .5); ctx.lineTo(g[2] * s * .5, g[3] * s * .5); }
+      ctx.stroke(); ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* lightning (blue wand) */
+function spawnBolt() {
+  const sn = Math.min(speed / diag, 1.5);
+  const a = rnd(0, TAU), len = rnd(70, 220) + sn * 120, n = 8;
+  const dx = Math.cos(a), dy = Math.sin(a), px = -dy, py = dx;
+  const pts = [[tip.x, tip.y]];
+  for (let i = 1; i <= n; i++) {
+    const t = i / n, j = (Math.random() - .5) * 34 * (1 - t * .3);
+    pts.push([tip.x + dx * len * t + px * j, tip.y + dy * len * t + py * j]);
+  }
+  B.push({ pts, life: .14, max: .14 });
+  flash = Math.min(0.12, flash + 0.07);
+}
+function drawBolts() {
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (const b of B) {
+    const k = b.life / b.max;
+    ctx.beginPath(); b.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.strokeStyle = `rgba(90,170,255,${k * 0.5})`; ctx.lineWidth = 10; ctx.stroke();
+    ctx.strokeStyle = `rgba(235,248,255,${k})`; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+  if (flash > 0.003) { ctx.fillStyle = `rgba(120,170,255,${flash})`; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* golden "the wand has chosen you" burst: rings, rays, flash */
+function drawBurst(now) {
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const g = rings[i], age = (now - g.t0) / 1000;
+    if (age > 1.5) { rings.splice(i, 1); continue; }
+    if (age < 0) continue;
+    ctx.strokeStyle = `rgba(255,215,120,${(1 - age / 1.5) * 0.7})`;
+    ctx.lineWidth = 4 + (1 - age / 1.5) * 14;
+    ctx.beginPath(); ctx.arc(g.x, g.y, (age / 1.5) * diag * 0.6, 0, TAU); ctx.stroke();
+  }
+  if (burst) {
+    const age = (now - burst.t0) / 1000;
+    if (age > 2.4) burst = null;
+    else {
+      const a = 1 - age / 2.4, rot = burst.rot + age * 0.35;
+      ctx.fillStyle = `rgba(255,222,140,${a * 0.22})`;
+      for (let i = 0; i < 14; i++) {
+        const ang = rot + i * TAU / 14;
+        ctx.beginPath(); ctx.moveTo(burst.x, burst.y);
+        ctx.lineTo(burst.x + Math.cos(ang - 0.045) * diag, burst.y + Math.sin(ang - 0.045) * diag);
+        ctx.lineTo(burst.x + Math.cos(ang + 0.045) * diag, burst.y + Math.sin(ang + 0.045) * diag);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+  if (goldFlash > 0.003) { ctx.fillStyle = `rgba(255,205,100,${goldFlash})`; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawBanner(now) {
+  if (!banner) return;
+  const age = (now - banner.t0) / 1000;
+  if (age > banner.dur) { banner = null; return; }
+  const a = Math.max(0, Math.min(1, age * 3, (banner.dur - age) * 2));
+  ctx.save();
+  ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = `bold ${banner.size}px Georgia, serif`;
+  ctx.shadowColor = banner.glow; ctx.shadowBlur = 24; ctx.fillStyle = banner.col;
+  ctx.fillText(banner.text, W / 2, H * 0.16 - age * 8);
+  ctx.restore();
+}
+
+/* trailing ribbon */
+const trail = [];
+function drawTrail(now, m) {
+  while (trail.length && now - trail[0].t > 650) trail.shift();
+  if (trail.length < 2) return;
+  const c = MODES[m] || MODES.testing;
+  const outer = verdict === 'chosen' && m !== 'fizzle' ? '255,214,120' : c.trail;
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const n = trail.length;
+  for (let i = 1; i < n; i++) {
+    const f = i / n, age = 1 - (now - trail[i].t) / 650;
+    const al = Math.max(0, Math.min(1, f * 0.9, age));
+    ctx.beginPath(); ctx.moveTo(trail[i - 1].x, trail[i - 1].y); ctx.lineTo(trail[i].x, trail[i].y);
+    ctx.strokeStyle = `rgba(${outer},${al * 0.35})`; ctx.lineWidth = 6 + f * 30; ctx.stroke();
+    ctx.strokeStyle = `rgba(${c.core},${al * 0.9})`; ctx.lineWidth = 1.5 + f * 8; ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* glowing wand tip */
+function drawTip(m, now) {
+  if (!tracking) return;
+  const c = MODES[m] || MODES.testing, fz = m === 'fizzle';
+  const fl = 0.85 + 0.15 * Math.sin(now * 0.03) + Math.random() * 0.12;
+  const big = m === 'red' ? 130 : m === 'blue' ? 100 : m === 'green' ? 95 : m === 'testing' ? 70 : 55;
+  ctx.globalCompositeOperation = 'lighter';
+  if (verdict === 'chosen' && !fz) {                       // golden aura
+    ctx.globalAlpha = 0.45 + 0.2 * Math.sin(now * 0.006);
+    ctx.drawImage(S.gold, tip.x - 100, tip.y - 100, 200, 200);
+  }
+  ctx.globalAlpha = fz ? 0.45 : 0.95;
+  ctx.drawImage(S[c.glow], tip.x - big * fl / 2, tip.y - big * fl / 2, big * fl, big * fl);
+  ctx.globalAlpha = fz ? 0.4 : 1;
+  const core = big * 0.42 * fl;
+  ctx.drawImage(S[c.hot], tip.x - core / 2, tip.y - core / 2, core, core);
+  if (m === 'red') {
+    for (let i = 0; i < 3; i++) {
+      const s = big * 0.5 * rnd(.6, 1);
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(S.fire, tip.x + jx() * 28 - s / 2, tip.y - rnd(6, 26) - s / 2, s, s);
+    }
+  } else if (m === 'green') {
+    for (let i = 0; i < 3; i++) {
+      const a = now * 0.004 * (i + 1) + i * 2.1, s = 14;
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(S.leafHot, tip.x + Math.cos(a) * 36 - s / 2, tip.y + Math.sin(a) * 36 - s / 2, s, s);
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ---------------- Web Audio ---------------- */
+let AC = null, master = null, fxIn = null, noiseBuf = null;
+function initAudio() {
+  if (AC) return;
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return;
+  AC = new Ctor();
+  master = AC.createGain(); master.gain.value = 0.6; master.connect(AC.destination);
+  const dl = AC.createDelay(1); dl.delayTime.value = 0.27;
+  const fb = AC.createGain(); fb.gain.value = 0.38;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+  dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(master);
+  fxIn = dl;
+  noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+  const ch = noiseBuf.getChannelData(0);
+  for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+}
+/* iOS mutes Web Audio on the silent switch unless a media element is "playing"; this quiet loop avoids that */
+function startSilentAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  try {
+    const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, 'RIFF'); v.setUint32(4, 36 + n, true); ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); ws(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+    a.loop = true; a.play().catch(() => {});
+  } catch (e) {}
+}
+function out(node, send) {
+  node.connect(master);
+  const sg = AC.createGain(); sg.gain.value = send; node.connect(sg); sg.connect(fxIn);
+}
+function tone(freq, t0, dur, vol, type, send) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); out(g, send); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function chime(m) {
+  if (!AC) return;
+  const roots = { red: 392, blue: 659.25, green: 523.25 }, sc = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3, 2];
+  const r = roots[m] || 523.25, t = AC.currentTime;
+  [0, 2, 3, 5].forEach((idx, i) => {
+    const f = r * sc[idx];
+    tone(f, t + i * 0.075, 1.3, 0.16, 'triangle', 0.7);
+    tone(f * 2, t + i * 0.075, 0.9, 0.05, 'sine', 0.7);
+    tone(f * 3.01, t + i * 0.075, 0.5, 0.02, 'sine', 0.7);
+  });
+}
+function whoosh(m, vol, pan) {
+  if (!AC) return;
+  const t = AC.currentTime, fz = m === 'fizzle';
+  const src = AC.createBufferSource(); src.buffer = noiseBuf; src.playbackRate.value = rnd(.8, 1.2);
+  const f = AC.createBiquadFilter();
+  let f0, f1, dur;
+  if (fz) { f.type = 'lowpass'; f.Q.value = 0.7; f0 = 700; f1 = 200; dur = 0.25; vol *= 0.7; }
+  else {
+    f.type = 'bandpass'; f.Q.value = 1.1; dur = 0.4;
+    [f0, f1] = m === 'red' ? [250, 1400] : m === 'blue' ? [900, 4200] : [500, 2800];
+  }
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + (fz ? 0.2 : 0.28));
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g);
+  if (AC.createStereoPanner) { const pn = AC.createStereoPanner(); pn.pan.value = pan; g.connect(pn); out(pn, fz ? 0.05 : 0.25); }
+  else out(g, fz ? 0.05 : 0.25);
+  src.start(t, Math.random() * 1.4, dur + 0.1); src.stop(t + dur + 0.1);
+}
+function sparkle(m) {
+  if (!AC) return;
+  const t = AC.currentTime;
+  if (m === 'fizzle') { tone(rnd(180, 260), t, 0.08, 0.05, 'triangle', 0); return; }
+  const hi = m === 'blue' ? 1.4 : 1;
+  for (let i = 0; i < 3; i++) tone(rnd(2200, 5400) * hi, t + i * 0.04 + Math.random() * 0.03, 0.18, 0.05, 'sine', 0.8);
+}
+function fizzleWah() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  [0, 4].forEach((det) => {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(330 + det, t); o.frequency.exponentialRampToValueAtTime(150, t + 0.6);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.1, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
+    o.connect(g); out(g, 0.1); o.start(t); o.stop(t + 0.7);
+  });
+}
+function shimmer() {                       // quiet "the wand is considering you" sound
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(659.25, t, 0.9, 0.06, 'sine', 0.8); tone(987.77, t + 0.12, 0.9, 0.05, 'sine', 0.8);
+}
+function fanfare() {                       // the wand has chosen you
+  if (!AC) return;
+  const t = AC.currentTime;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.9);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.35, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1);
+  o.connect(g); out(g, 0.2); o.start(t); o.stop(t + 1.1);
+  whoosh('green', 0.45, 0);
+  [523.25, 659.25, 783.99, 1046.5, 1318.5, 1568].forEach((f, i) => {
+    const tt = t + 0.05 + i * 0.09;
+    tone(f, tt, 2.4, 0.17, 'triangle', 0.9); tone(f * 2, tt, 1.6, 0.06, 'sine', 0.9); tone(f * 3.01, tt, 0.8, 0.025, 'sine', 0.9);
+  });
+  [523.25, 659.25, 783.99, 1046.5].forEach((f) => tone(f, t + 0.6, 3.2, 0.09, 'sine', 0.9));
+  for (let i = 0; i < 14; i++) tone(rnd(2500, 6200), t + 0.2 + i * 0.09 + Math.random() * 0.05, 0.2, 0.045, 'sine', 0.8);
+}
+let lastSpark = 0, lastWhoosh = 0, lastChime = 0;
+function audioTick(now, m) {
+  if (!AC || !tracking) return;
+  const sn = speed / diag, pan = Math.max(-1, Math.min(1, (tip.x / W) * 2 - 1));
+  if (sn > 0.22 && now - lastSpark > 110) { lastSpark = now; sparkle(m); }
+  if (sn > 0.5 && now - lastWhoosh > 240) { lastWhoosh = now; whoosh(m, Math.min(0.5, 0.12 + sn * 0.3), pan); }
+  if (sn > 0.9 && now - lastChime > 1100 && m !== 'fizzle' && m !== 'testing') { lastChime = now; chime(m); }
+}
+
+/* ---------------- moments ---------------- */
+function onAcquire(now) {
+  if (!AC || now - lastAcquireSound < 1200) return;
+  lastAcquireSound = now;
+  if (cfg.choose === 'free' && !forceFizzle) chime(mode); else shimmer();
+}
+function onChosen(now) {
+  const x = tip.x, y = tip.y;
+  for (let i = 0; i < 260; i++) {
+    const a = rnd(0, TAU), v = rnd(150, 950);
+    sp({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rnd(.8, 1.9), size: rnd(8, 28), sp: Math.random() < .5 ? 'gold' : 'goldHot', drag: 1.3 });
+  }
+  for (let i = 0; i < 45; i++) {
+    const a = rnd(0, TAU), v = rnd(100, 600);
+    sp({ type: 'star', col: 'rgba(255,232,160,1)', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vr: jx() * 4, size: rnd(8, 20), life: rnd(1, 2), drag: 1 });
+  }
+  rings.push({ x, y, t0: now }, { x, y, t0: now + 250 }, { x, y, t0: now + 500 });
+  burst = { x, y, t0: now, rot: rnd(0, TAU) };
+  goldFlash = 0.6;
+  for (let i = 0; i < 12; i++) spawnRune(x + jx() * W * 0.6, y + jx() * H * 0.4, true);
+  banner = { text: 'The wand has chosen you!', t0: now, dur: 4, size: Math.round(Math.min(W * 0.065, 72)), col: '#ffe9a8', glow: '#ffb840' };
+  fanfare();
+}
+function onReject(now) {
+  for (let i = 0; i < 30; i++) {
+    sp({ type: 'smoke', x: tip.x + jx() * 30, y: tip.y + jx() * 30, vx: jx() * 140, vy: -rnd(20, 110), life: rnd(1.2, 2.4), size: rnd(40, 90), grow: rnd(40, 80), a: .4, drag: .6, sp: 'smoke' });
+  }
+  for (let i = 0; i < 20; i++) sp({ x: tip.x, y: tip.y, vx: jx() * 380, vy: -rnd(20, 220), grav: 300, life: rnd(.4, .9), size: rnd(4, 8), sp: 'gray', a: .8, drag: .4 });
+  banner = { text: 'The wand does not choose you…', t0: now, dur: 3, size: Math.round(Math.min(W * 0.05, 56)), col: '#c9c9d2', glow: '#555566' };
+  whoosh('fizzle', 0.35, 0);
+  fizzleWah();
+}
+
+/* ---------------- main loop ---------------- */
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const rdt = (now - last) / 1000, dt = Math.min(rdt, 0.05); last = now;
+  dtEma = dtEma * 0.95 + rdt * 0.05;
+  if (dtEma > 0.028) qual = Math.max(0.35, qual - 0.01); else if (dtEma < 0.02) qual = Math.min(1, qual + 0.004);
+  maxP = Math.floor(300 + 1500 * qual);
+  ctx.clearRect(0, 0, W, H);
+  drawMotes(now, dt);
+  if (!running) return;
+
+  if (calib) {                                    // 3-second tip calibration
+    const left = 3 - (now - calib.t0) / 1000, cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.07;
+    ctx.save();
+    ctx.strokeStyle = '#ffd57a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+    ctx.fillStyle = '#fff3cf'; ctx.textAlign = 'center'; ctx.font = `bold ${Math.round(Math.min(W * 0.04, 34))}px Georgia, serif`;
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
+    ctx.fillText(`Hold the ${COLORS[calib.k]} tip in the circle… ${Math.max(1, Math.ceil(left))}`, cx, cy - R - 24);
+    ctx.restore();
+    if (left <= 0) {
+      const ok = sampleColor(calib.k);
+      toast(ok ? `${COLORS[calib.k]} tip learned` : "Couldn't see a clear colour. Try again, closer and brighter.");
+      calib = null;
+    }
+    return;
+  }
+
+  updateTracking(getDetection(now), now, dt);
+  judge(now);
+
+  let vm = lastVm;
+  if (tracking) {
+    if (forceFizzle || verdict === 'rejected') vm = 'fizzle';
+    else if (verdict === 'none') vm = 'testing';
+    else vm = mode;
+    lastVm = vm;
+    emitFor(vm, dt); trail.push({ x: tip.x, y: tip.y, t: now });
+    if (vm === 'blue') {
+      boltT -= dt;
+      if (boltT <= 0) { spawnBolt(); boltT = Math.max(0.05, 0.28 - Math.min(speed / diag, 1) * 0.2 + Math.random() * 0.12); }
+    }
+    if (verdict === 'chosen' && vm !== 'fizzle') {
+      runeT -= dt;
+      if (runeT <= 0) {
+        runeT = rnd(0.25, 0.5);
+        if (Math.random() < 0.6) spawnRune(tip.x + jx() * 280, tip.y + jx() * 200, false);
+        else spawnRune(rnd(W * 0.1, W * 0.9), rnd(H * 0.5, H), false);
+      }
+    }
+  }
+  updateParticles(dt);
+  drawParticles(); drawTrail(now, vm); drawBolts(); drawTip(vm, now); drawBurst(now); drawBanner(now);
+  audioTick(now, vm);
+}
+requestAnimationFrame(frame);
+
+/* ---------------- grown-up panel ---------------- */
+const panel = $('panel');
+function setForce(v) {
+  forceFizzle = v; $('dot').classList.toggle('fizzle', v);
+  if (tracking) { verdict = 'none'; trackStart = performance.now() - WAIT; }   // re-judge straight away
+  refreshPanel();
+}
+function newWizard() {
+  rollChosen(); verdict = 'none'; trackStart = performance.now(); revealed = false;
+  toast('A new wizard approaches…'); refreshPanel();
+}
+function refreshPanel() {
+  document.querySelectorAll('#chooseBtns button').forEach((b) => b.classList.toggle('on', b.dataset.c === cfg.choose));
+  $('forceBtn').textContent = 'Force reject: ' + (forceFizzle ? 'ON' : 'off'); $('forceBtn').classList.toggle('on', forceFizzle);
+  $('camFront').classList.toggle('on', cfg.facing === 'front'); $('camRear').classList.toggle('on', cfg.facing === 'rear');
+  $('mirrorBtn').textContent = 'Mirror: ' + (cfg.mirror ? 'on' : 'off');
+  $('sensVal').textContent = Math.round(cfg.sens * 100) + '%';
+  $('chosenLbl').textContent = revealed ? (cfg.choose === 'free' ? 'free play' : chosen) : '••••';
+  $('dbgBtn').classList.toggle('on', debug); $('dotBtn').textContent = cfg.dotHidden ? 'Show status dot' : 'Hide status dot';
+}
+function openPanel() { refreshPanel(); panel.hidden = false; }
+function closePanel() { panel.hidden = true; }
+
+document.querySelectorAll('#chooseBtns button').forEach((b) => b.addEventListener('click', () => {
+  cfg.choose = b.dataset.c; saveCfg(); rollChosen(); verdict = 'none'; trackStart = performance.now(); revealed = false; refreshPanel();
+}));
+$('newWizard').addEventListener('click', newWizard);
+$('reveal').addEventListener('click', () => { revealed = !revealed; refreshPanel(); });
+$('forceBtn').addEventListener('click', () => setForce(!forceFizzle));
+$('camFront').addEventListener('click', () => switchCamera('front'));
+$('camRear').addEventListener('click', () => switchCamera('rear'));
+$('mirrorBtn').addEventListener('click', () => { cfg.mirror = !cfg.mirror; saveCfg(); applyMirror(); refreshPanel(); });
+$('sensMinus').addEventListener('click', () => { cfg.sens = Math.max(0, +(cfg.sens - 0.1).toFixed(2)); saveCfg(); refreshPanel(); });
+$('sensPlus').addEventListener('click', () => { cfg.sens = Math.min(1, +(cfg.sens + 0.1).toFixed(2)); saveCfg(); refreshPanel(); });
+document.querySelectorAll('[data-cal]').forEach((b) => b.addEventListener('click', () => {
+  closePanel(); P.length = 0; trail.length = 0; tracking = false; calib = { k: +b.dataset.cal, t0: performance.now() };
+}));
+$('calReset').addEventListener('click', () => { cfg.calib = {}; saveCfg(); toast('Tip colours reset'); });
+$('dbgBtn').addEventListener('click', () => { debug = !debug; dbg.style.display = debug ? 'block' : 'none'; refreshPanel(); });
+$('dotBtn').addEventListener('click', () => { cfg.dotHidden = !cfg.dotHidden; saveCfg(); $('dot').classList.toggle('hidden', cfg.dotHidden); refreshPanel(); });
+$('closeBtn').addEventListener('click', closePanel);
+
+let taps = [];
+$('hot').addEventListener('pointerdown', () => {
+  const t = performance.now(); taps = taps.filter((x) => t - x < 900); taps.push(t);
+  if (taps.length >= 3) { taps = []; openPanel(); }
+});
+
+addEventListener('keydown', (e) => {
+  const k = e.key;
+  if (k === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) setForce(!forceFizzle); }
+  else if (k === 'ArrowUp') { e.preventDefault(); cfg.sens = Math.min(1, +(cfg.sens + 0.1).toFixed(2)); saveCfg(); toast('Sensitivity ' + Math.round(cfg.sens * 100) + '%'); }
+  else if (k === 'ArrowDown') { e.preventDefault(); cfg.sens = Math.max(0, +(cfg.sens - 0.1).toFixed(2)); saveCfg(); toast('Sensitivity ' + Math.round(cfg.sens * 100) + '%'); }
+  else if (k === 'd' || k === 'D') { debug = !debug; dbg.style.display = debug ? 'block' : 'none'; }
+  else if (k === 'm' || k === 'M') { mouseMode = !mouseMode; toast(mouseMode ? 'Mouse wand on (1 red, 2 green, 3 blue)' : 'Camera wand on'); }
+  else if (k === '1') { mouseColor = 'red'; toast('Mouse wand: red'); }
+  else if (k === '2') { mouseColor = 'green'; toast('Mouse wand: green'); }
+  else if (k === '3') { mouseColor = 'blue'; toast('Mouse wand: blue'); }
+  else if (k === 'h' || k === 'H') { cfg.dotHidden = !cfg.dotHidden; saveCfg(); $('dot').classList.toggle('hidden', cfg.dotHidden); }
+  else if (k === 'n' || k === 'N') newWizard();
+  else if (k === 'a' || k === 'A') { panel.hidden ? openPanel() : closePanel(); }
+  else if (k === 'f' || k === 'F') {
+    if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+  }
+});
+
+/* ---------------- camera + start ---------------- */
+let stream = null, wakeLock = null;
+function applyMirror() { video.style.transform = cfg.mirror ? 'scaleX(-1)' : 'none'; }
+async function startCamera(which) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Camera API unavailable (needs HTTPS)');
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: which === 'front' ? 'user' : 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
+  });
+  cfg.facing = which; saveCfg();
+  video.muted = true; video.srcObject = stream; await video.play(); sizeDetect(); applyMirror();
+}
+async function switchCamera(which) {
+  try { await startCamera(which); mouseMode = false; refreshPanel(); }
+  catch (err) { toast('Could not switch camera: ' + err.message); }
+}
+async function lockScreen() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { if (running) lockScreen(); if (AC && AC.state === 'suspended') AC.resume(); }
+});
+
+async function startApp(which) {
+  $('beginRear').disabled = $('beginFront').disabled = true;
+  initAudio(); startSilentAudio();
+  if (AC && AC.state === 'suspended') AC.resume();
+  try { await startCamera(which); }
+  catch (err) {
+    mouseMode = true;
+    $('err').textContent = 'Camera unavailable (' + err.message + '). Starting in mouse-wand mode: press 1, 2 or 3 for colour.';
+    await new Promise((r) => setTimeout(r, 1800));
+  }
+  rollChosen();
+  $('dot').classList.toggle('hidden', cfg.dotHidden);
+  $('intro').style.display = 'none';
+  running = true; lockScreen();
+}
+applyMirror();
+$('beginRear').addEventListener('click', () => startApp('rear'));
+$('beginFront').addEventListener('click', () => startApp('front'));
+</script>
+</body>
+</html>
