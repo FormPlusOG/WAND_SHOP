@@ -2,51 +2,1061 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wand Table Labels</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0716">
+<title>The Wand Shop</title>
 <style>
-  @page { size: A4 landscape; margin: 12mm; }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 18px; background: #efe6d2; font-family: Georgia, 'Times New Roman', serif; color: #3b2a14; }
-  h1 { text-align: center; letter-spacing: .28em; text-transform: uppercase; font-weight: normal; margin: 6px 0 4px; font-size: 30px; }
-  .sub { text-align: center; font-style: italic; margin: 0 0 18px; opacity: .8; }
-  .row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-  .label { width: 300px; padding: 18px 16px 16px; border: 3px double #8a6a2f; background: #fbf4e3; text-align: center; border-radius: 6px; break-inside: avoid; }
-  .tape { width: 70px; height: 22px; margin: 0 auto 10px; border-radius: 3px; border: 1px solid rgba(0,0,0,.25); }
-  .label h2 { margin: 6px 0 2px; font-size: 21px; letter-spacing: .04em; }
-  .label .tag { margin: 0 0 8px; font-size: 16px; font-style: italic; }
-  .label .meta { font-size: 13px; opacity: .8; margin: 2px 0; }
-  .label .tip { margin-top: 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
-  .note { max-width: 720px; margin: 22px auto 0; font-size: 13px; text-align: center; opacity: .75; }
-  @media print { body { background: #fff; padding: 0; } .note { display: none; } }
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; overscroll-behavior:none; touch-action:none;
+               -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+               font-family:Georgia,'Times New Roman',serif; color:#f3e6c4; }
+  #video { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1);
+           filter:brightness(.8) contrast(1.06) sepia(.2) saturate(.95); background:#000; }
+  #fx { position:fixed; inset:0; width:100%; height:100%; }
+  #vignette { position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 42%, rgba(12,6,28,.55) 78%, rgba(4,2,12,.94) 100%);
+    box-shadow:inset 0 0 140px 50px rgba(18,8,38,.75); }
+  #vignette::after { content:''; position:absolute; inset:16px; border-radius:20px;
+    border:1px solid rgba(255,215,130,.28); box-shadow:0 0 22px rgba(255,200,100,.18), inset 0 0 22px rgba(255,200,100,.12); }
+  #dot { position:fixed; left:12px; bottom:12px; width:6px; height:6px; border-radius:50%; background:#ffd57a; opacity:.2; z-index:5; pointer-events:none; }
+  #dot.reject { background:#9a9a9f; }
+  #dot.accept { background:#fff; }
+  #dot.hidden { display:none; }
+  #hot { position:fixed; left:0; bottom:0; width:96px; height:96px; z-index:7; }
+  #toast { position:fixed; left:50%; bottom:34px; transform:translateX(-50%); padding:6px 16px; border-radius:14px; background:rgba(10,5,25,.7);
+           font-size:14px; letter-spacing:.06em; opacity:0; transition:opacity .4s; pointer-events:none; z-index:30; text-align:center; max-width:90vw; }
+  #dbg { position:fixed; top:14px; right:14px; width:320px; border:1px solid #ffd57a; display:none; z-index:6; image-rendering:pixelated; background:#000; pointer-events:none; }
+
+  #intro { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; overflow:auto;
+           background:radial-gradient(circle at 50% 40%, #2a1b52 0%, #0b0716 70%); }
+  .card { max-width:540px; margin:20px; padding:28px 30px; border:1px solid rgba(255,215,130,.45); border-radius:18px; text-align:center;
+          background:rgba(15,9,32,.78); box-shadow:0 0 50px rgba(255,200,100,.15); }
+  .card h1 { margin:0 0 6px; font-weight:normal; font-size:32px; letter-spacing:.2em; text-transform:uppercase; color:#ffd57a; }
+  .card p { margin:10px 0; line-height:1.5; opacity:.9; }
+  .go { margin:8px 6px 0; padding:14px 24px; font:inherit; font-size:17px; letter-spacing:.1em; text-transform:uppercase; color:#1a0f33;
+        background:linear-gradient(#ffe29a,#e7ae45); border:0; border-radius:30px; cursor:pointer; box-shadow:0 0 24px rgba(255,200,100,.5); }
+  .go:disabled { opacity:.5; }
+  details { margin-top:16px; font-size:13px; text-align:left; opacity:.85; }
+  details summary { cursor:pointer; text-align:center; }
+  details li { margin:4px 0; }
+  #err { color:#ff9c9c; font-size:14px; min-height:18px; }
+
+  #panel { position:fixed; inset:0; z-index:20; background:rgba(5,2,15,.82); display:flex; align-items:center; justify-content:center; touch-action:pan-y; }
+  #panel[hidden] { display:none; }
+  .pbox { width:min(560px,94vw); max-height:92vh; overflow:auto; padding:16px 20px; border:1px solid rgba(255,215,130,.45); border-radius:16px; background:rgba(15,9,32,.96); }
+  .pbox h2 { margin:0 0 8px; font-weight:normal; letter-spacing:.14em; text-transform:uppercase; color:#ffd57a; font-size:18px; }
+  .prow { margin:12px 0 2px; font-size:14px; }
+  .pbox button { min-height:44px; padding:8px 14px; margin:4px 4px 4px 0; border-radius:10px; border:1px solid #6b5a9e; background:#20153f; color:#f3e6c4; font:inherit; font-size:15px; }
+  .pbox button.on { background:#e7ae45; color:#1a0f33; border-color:#ffd57a; }
 </style>
 </head>
 <body>
-  <h1>The Wand Shop</h1>
-  <p class="sub">Choose your wand. The wand chooses the wizard&hellip; if you move just so.</p>
-  <div class="row">
-    <div class="label">
-      <div class="tape" style="background:#e3321f"></div>
-      <h2>Dragon Heartstring</h2>
-      <p class="tag">Great for Fireballs</p>
-      <p class="meta">Wood: Rowan &middot; Temper: Bold</p>
-      <p class="tip">Wand No. I</p>
+<video id="video" playsinline muted autoplay></video>
+<canvas id="fx"></canvas>
+<div id="vignette"></div>
+<canvas id="dbg"></canvas>
+<div id="dot"></div>
+<div id="hot"></div>
+<div id="toast"></div>
+
+<div id="intro">
+  <div class="card">
+    <h1>The Wand Shop</h1>
+    <p>Step up to the magic mirror, pick a wand from the table and wave it. Only the right movement will make a wand choose its wizard&hellip;</p>
+    <p style="font-size:14px">Stand back so your whole arm and wand are visible, and keep the room well lit.</p>
+    <div id="err"></div>
+    <button class="go" id="beginRear">Rear camera</button>
+    <button class="go" id="beginFront">Front camera</button>
+    <details>
+      <summary>Grown-up notes</summary>
+      <ul>
+        <li><b>How it works:</b> the mirror follows whatever is <i>moving</i> (no coloured tip needed). The wand chooses the child when they trace the secret shape (a figure 8 or a zigzag); any other movement makes it fizzle.</li>
+        <li><b>Keep the camera still.</b> Prop the phone up. A moving camera looks like moving everything.</li>
+        <li><b>Hidden controls:</b> triple-tap the bottom-left corner of the screen (or press <b>A</b>) to choose the secret shape, re-roll for the next child, secretly force a result, pick the magic style, switch camera and tune sensitivity.</li>
+        <li>On an iPhone: turn the ring/silent switch off, turn the volume up and use landscape. Screen-mirror (AirPlay) to the TV. Add to Home Screen for full screen.</li>
+        <li>Keyboard: <b>Space</b> always reject, <b>G</b> always choose, <b>N</b> new wizard, <b>&uarr;/&darr;</b> sensitivity, <b>D</b> debug view, <b>H</b> hide status dot, <b>M</b> mouse wand (draw with the mouse; keys 1, 2, 3 pick magic style), <b>F</b> full screen.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<div id="panel" hidden>
+  <div class="pbox">
+    <h2>Grown-up controls</h2>
+    <div class="prow"><b>Secret movement that the wand chooses</b></div>
+    <div id="gestBtns">
+      <button data-g="random">Random</button><button data-g="figure8">Figure 8</button><button data-g="zigzag">Zigzag</button><button data-g="either">Either</button><button data-g="free">Free play</button>
     </div>
-    <div class="label">
-      <div class="tape" style="background:#1f6fe3"></div>
-      <h2>Phoenix Feather</h2>
-      <p class="tag">Master of Lightning &amp; Ice</p>
-      <p class="meta">Wood: Ash &middot; Temper: Quick</p>
-      <p class="tip">Wand No. II</p>
+    <div class="prow">
+      <button id="newWizard">New wizard (re-roll)</button>
+      <span>Chosen: <b id="chosenLbl">&bull;&bull;&bull;&bull;</b></span> <button id="reveal">Reveal</button>
     </div>
-    <div class="label">
-      <div class="tape" style="background:#1fb255"></div>
-      <h2>Unicorn Mane</h2>
-      <p class="tag">Keeper of Healing &amp; Leaves</p>
-      <p class="meta">Wood: Willow &middot; Temper: Gentle</p>
-      <p class="tip">Wand No. III</p>
+
+    <div class="prow"><b>Secret override</b></div>
+    <div id="ovBtns">
+      <button data-o="none">None</button><button data-o="accept">Always choose</button><button data-o="reject">Always reject</button>
+    </div>
+
+    <div class="prow"><b>Wand magic</b></div>
+    <div id="elBtns">
+      <button data-e="auto">Auto</button><button data-e="red">Fire</button><button data-e="blue">Ice &amp; lightning</button><button data-e="green">Leaves</button>
+    </div>
+
+    <div class="prow"><b>Camera</b></div>
+    <div><button id="camFront">Front</button><button id="camRear">Rear</button><button id="mirrorBtn">Mirror: on</button></div>
+
+    <div class="prow"><b>Motion sensitivity</b> <button id="sensMinus">&minus;</button><b id="sensVal">50%</b><button id="sensPlus">+</button></div>
+
+    <div class="prow">
+      <button id="dbgBtn">Debug view</button><button id="dotBtn">Hide status dot</button><button id="closeBtn">Close</button>
     </div>
   </div>
-  <p class="note">Print on A4 landscape, cut out and fold or tape one card beside each wand. The coloured strip is just decoration: use matching ribbon or tape on the wand handle if you like. The mirror follows the wand's <i>movement</i>, so the colour of the tip doesn't matter.</p>
+</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const TAU = Math.PI * 2;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const jx = () => Math.random() - 0.5;
+const video = $('video'), fx = $('fx'), ctx = fx.getContext('2d');
+let W = 0, H = 0, DPR = 1, diag = 1;
+
+/* ---------------- settings (remembered on this device) ---------------- */
+const cfg = { facing: 'rear', mirror: true, sens: 0.5, gesture: 'random', element: 'auto', dotHidden: false };
+try { Object.assign(cfg, JSON.parse(localStorage.getItem('wandShopCfg2') || '{}')); } catch (e) {}
+function saveCfg() { try { localStorage.setItem('wandShopCfg2', JSON.stringify(cfg)); } catch (e) {} }
+
+/* ---------------- toast ---------------- */
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.opacity = 0; }, 1800);
+}
+
+/* ---------------- sprites ---------------- */
+function makeGlow(rgb, size = 64) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gr.addColorStop(0, `rgba(${rgb},1)`);
+  gr.addColorStop(.25, `rgba(${rgb},.55)`);
+  gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, size, size);
+  return c;
+}
+const S = {
+  fire: makeGlow('255,110,30'), fireHot: makeGlow('255,210,90'),
+  ice: makeGlow('90,170,255'), iceHot: makeGlow('215,240,255'),
+  leaf: makeGlow('60,255,150'), leafHot: makeGlow('190,255,150'),
+  gold: makeGlow('255,215,120'), goldHot: makeGlow('255,245,200'),
+  gray: makeGlow('205,205,205'), smoke: makeGlow('120,120,125')
+};
+const MODES = {
+  red:    { trail: '255,110,40',  core: '255,235,170', glow: 'fire', hot: 'fireHot' },
+  blue:   { trail: '110,180,255', core: '235,248,255', glow: 'ice',  hot: 'iceHot'  },
+  green:  { trail: '70,255,160',  core: '225,255,205', glow: 'leaf', hot: 'leafHot' },
+  fizzle: { trail: '170,170,175', core: '215,215,220', glow: 'gray', hot: 'gray'    }
+};
+
+/* ---------------- resize / motes ---------------- */
+let motes = [];
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight; diag = Math.hypot(W, H);
+  fx.width = W * DPR; fx.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  motes = [];
+  for (let i = 0; i < 70; i++) motes.push({
+    x: Math.random() * W, y: Math.random() * H, r: 1 + Math.random() * 2.8,
+    ph: Math.random() * TAU, sp: 6 + Math.random() * 14
+  });
+}
+addEventListener('resize', resize); resize();
+
+function drawMotes(now, dt) {
+  const t = now / 1000;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const m of motes) {
+    m.y -= m.sp * dt * 0.6; m.x += Math.sin(t * 0.3 + m.ph) * 8 * dt;
+    if (m.y < -10) { m.y = H + 10; m.x = Math.random() * W; }
+    if (m.x < -10) m.x = W + 10;
+    if (m.x > W + 10) m.x = -10;
+    const tw = 0.25 + 0.4 * (0.5 + 0.5 * Math.sin(t * 1.6 + m.ph));
+    ctx.globalAlpha = tw;
+    const s = m.r * 9;
+    ctx.drawImage(S.gold, m.x - s / 2, m.y - s / 2, s, s);
+    ctx.globalAlpha = Math.min(1, tw * 1.6);
+    const c = m.r * 2.2;
+    ctx.drawImage(S.gold, m.x - c / 2, m.y - c / 2, c, c);
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ---------------- motion tracking (frame differencing) ---------------- */
+const DW = 160; let DH = 90;
+const oc = document.createElement('canvas');
+const octx = oc.getContext('2d', { willReadFrequently: true });
+const dbg = $('dbg'), dbgctx = dbg.getContext('2d');
+let dbgImg = null, debug = false;
+let prevL = null, diffA = null, idxA = null, tipD = { x: 0, y: 0 };
+
+function sizeDetect() {
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+  DH = Math.max(1, Math.round(DW * vh / vw));
+  oc.width = DW; oc.height = DH; dbg.width = DW; dbg.height = DH;
+  dbgImg = dbgctx.createImageData(DW, DH);
+  prevL = null; diffA = new Uint8Array(DW * DH); idxA = new Int32Array(DW * DH);
+}
+sizeDetect();
+video.addEventListener('loadedmetadata', sizeDetect);
+video.addEventListener('resize', sizeDetect);
+
+function toScreen(cx, cy) {
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+  const scale = Math.max(W / vw, H / vh);
+  const dispW = vw * scale, dispH = vh * scale;
+  return { x: (W - dispW) / 2 + (cx / DW) * dispW, y: (H - dispH) / 2 + (cy / DH) * dispH };
+}
+function drawFrame() {
+  octx.save();
+  if (cfg.mirror) { octx.translate(DW, 0); octx.scale(-1, 1); }   // match what is shown on screen
+  octx.drawImage(video, 0, 0, DW, DH);
+  octx.restore();
+}
+
+/* returns: {x,y} screen position of the moving thing, null (nothing moving), undefined (camera frame unchanged) */
+function detectMotion() {
+  if (video.readyState < 2 || !video.videoWidth) return null;
+  drawFrame();
+  const d = octx.getImageData(0, 0, DW, DH).data, n = DW * DH;
+  if (!prevL || prevL.length !== n) {
+    prevL = new Uint8ClampedArray(n);
+    for (let p = 0, i = 0; p < n; p++, i += 4) prevL[p] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+    return null;
+  }
+  const thr = Math.round(52 - 36 * cfg.sens), minPx = 10;
+  let sad = 0, cnt = 0;
+  for (let p = 0, i = 0; p < n; p++, i += 4) {
+    const l = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+    const df = l > prevL[p] ? l - prevL[p] : prevL[p] - l;
+    prevL[p] = l; sad += df;
+    if (df > thr) { diffA[p] = df; idxA[cnt++] = p; } else diffA[p] = 0;
+  }
+  if (sad === 0) return undefined;                          // duplicate camera frame (screen refresh faster than camera)
+  const dd = debug && dbgImg ? dbgImg.data : null;
+  if (dd) { dd.fill(0); for (let k = 0; k < cnt; k++) { const p = idxA[k]; dd[p * 4] = 255; dd[p * 4 + 1] = 90; dd[p * 4 + 2] = 60; dd[p * 4 + 3] = 255; } }
+  let res = null;
+  if (cnt >= minPx && cnt < n * 0.35) {                     // too much motion = camera shake or lighting change
+    let cx, cy, c = 0;
+    if (tracking) { cx = tipD.x; cy = tipD.y; }
+    else {                                                  // acquire: weighted centroid of everything that moved
+      let sx = 0, sy = 0, sw = 0;
+      for (let k = 0; k < cnt; k++) { const p = idxA[k], w = diffA[p]; sx += (p % DW) * w; sy += ((p / DW) | 0) * w; sw += w; }
+      cx = sx / sw; cy = sy / sw;
+    }
+    const R = DW * (tracking ? 0.22 : 0.25), R2 = R * R;
+    for (let pass = 0; pass < (tracking ? 1 : 2); pass++) {
+      let sx = 0, sy = 0, sw = 0; c = 0;
+      for (let k = 0; k < cnt; k++) {
+        const p = idxA[k], x = p % DW, y = (p / DW) | 0, ex = x - cx, ey = y - cy;
+        if (ex * ex + ey * ey > R2) continue;
+        const w = diffA[p]; sx += x * w; sy += y * w; sw += w; c++;
+      }
+      if (c < minPx) break;
+      cx = sx / sw; cy = sy / sw;
+    }
+    if (c >= minPx) { tipD.x = cx; tipD.y = cy; res = toScreen(cx + 0.5, cy + 0.5); }
+  }
+  if (dd) {
+    if (res) for (let yy = -1; yy <= 1; yy++) for (let xx = -1; xx <= 1; xx++) {
+      const px = Math.round(tipD.x) + xx, py = Math.round(tipD.y) + yy;
+      if (px >= 0 && px < DW && py >= 0 && py < DH) { const q = (py * DW + px) * 4; dd[q] = dd[q + 1] = dd[q + 2] = 255; dd[q + 3] = 255; }
+    }
+    dbgctx.putImageData(dbgImg, 0, 0);
+  }
+  return res;
+}
+
+/* mouse "wand" fallback: draw the secret shape with the mouse (also handy for testing) */
+let mouseMode = false, mouseX = 0, mouseY = 0, mouseT = -1e9;
+addEventListener('pointermove', (e) => { mouseX = e.clientX; mouseY = e.clientY; mouseT = performance.now(); });
+function getDetection(now) {
+  if (mouseMode) return now - mouseT < 180 ? { x: mouseX, y: mouseY } : null;
+  return detectMotion();
+}
+
+/* ---------------- gesture recognition ---------------- */
+function smoothPts(a, r) {
+  const n = a.length, out = [];
+  for (let i = 0; i < n; i++) {
+    let sx = 0, sy = 0, c = 0;
+    for (let k = Math.max(0, i - r); k <= Math.min(n - 1, i + r); k++) { sx += a[k][0]; sy += a[k][1]; c++; }
+    out.push([sx / c, sy / c]);
+  }
+  return out;
+}
+function resample(pts, n) {
+  const d = [0]; let L = 0;
+  for (let i = 1; i < pts.length; i++) { L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); d.push(L); }
+  if (L < 1e-6) return null;
+  const out = []; let j = 0;
+  for (let k = 0; k < n; k++) {
+    const target = L * k / (n - 1);
+    while (j < pts.length - 2 && d[j + 1] < target) j++;
+    const seg = d[j + 1] - d[j] || 1, t = Math.min(1, Math.max(0, (target - d[j]) / seg));
+    out.push([pts[j][0] + (pts[j + 1][0] - pts[j][0]) * t, pts[j][1] + (pts[j + 1][1] - pts[j][1]) * t]);
+  }
+  return out;
+}
+/* figure 8: the direction of travel swings one way round a loop, then back the other way round the second loop */
+function isFigure8(pts) {
+  const n = pts.length, K = 4, th = [];
+  let prev = null, acc = 0;
+  for (let i = 0; i + K < n; i++) {
+    const h = Math.atan2(pts[i + K][1] - pts[i][1], pts[i + K][0] - pts[i][0]);
+    if (prev === null) acc = h;
+    else { let d = h - prev; while (d > Math.PI) d -= TAU; while (d < -Math.PI) d += TAU; acc += d; }
+    prev = h; th.push(acc);
+  }
+  const m = th.length;
+  if (m < 10) return false;
+  // must be two-dimensional (not just a line swung side to side): compare extents along the principal axes
+  let mx = 0, my = 0; pts.forEach((q) => { mx += q[0]; my += q[1]; }); mx /= n; my /= n;
+  let sxx = 0, syy = 0, sxy = 0; pts.forEach((q) => { const x = q[0] - mx, y = q[1] - my; sxx += x * x; syy += y * y; sxy += x * y; });
+  const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy), ca = Math.cos(ang), sa = Math.sin(ang);
+  let u0 = 1e9, u1 = -1e9, v0 = 1e9, v1 = -1e9;
+  pts.forEach((q) => { const u = (q[0] - mx) * ca + (q[1] - my) * sa, v = -(q[0] - mx) * sa + (q[1] - my) * ca; u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); });
+  if ((v1 - v0) < 0.3 * (u1 - u0)) return false;
+  const E = Math.max(u1 - u0, v1 - v0);
+  const spanOf = (i0, i1) => {                                    // size of the part of the path between two samples
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (let i = i0; i <= Math.min(i1, n - 1); i++) { x0 = Math.min(x0, pts[i][0]); x1 = Math.max(x1, pts[i][0]); y0 = Math.min(y0, pts[i][1]); y1 = Math.max(y1, pts[i][1]); }
+    return Math.max(x1 - x0, y1 - y0);
+  };
+  // significant swings of the heading (ignore wobbles smaller than 60 degrees), remembering where each one ends
+  const H = 60 * Math.PI / 180, T = 150 * Math.PI / 180;
+  const piv = [th[0]], pidx = [0]; let trend = 0, ext = th[0], extI = 0;
+  for (let i = 1; i < m; i++) {
+    const v = th[i];
+    if (trend === 0) { if (v - ext >= H) { trend = 1; ext = v; extI = i; } else if (ext - v >= H) { trend = -1; ext = v; extI = i; } }
+    else if (trend === 1) { if (v > ext) { ext = v; extI = i; } else if (ext - v >= H) { piv.push(ext); pidx.push(extI); trend = -1; ext = v; extI = i; } }
+    else { if (v < ext) { ext = v; extI = i; } else if (v - ext >= H) { piv.push(ext); pidx.push(extI); trend = 1; ext = v; extI = i; } }
+  }
+  piv.push(ext); pidx.push(extI);
+  let tv = 0; for (let i = 1; i < piv.length; i++) tv += Math.abs(piv[i] - piv[i - 1]);
+  let best = 0;
+  for (let i = 2; i < piv.length; i++) {                           // one swing one way, then a swing back the other way
+    const a1 = Math.abs(piv[i - 1] - piv[i - 2]), b1 = Math.abs(piv[i] - piv[i - 1]);
+    // each swing must be a gradual loop (many samples), not a sharp corner as in a zigzag
+    if (a1 >= T && b1 >= T && pidx[i - 1] - pidx[i - 2] >= 12 && pidx[i] - pidx[i - 1] >= 12 &&
+        spanOf(pidx[i - 2], pidx[i - 1] + K) >= 0.3 * E && spanOf(pidx[i - 1], pidx[i] + K) >= 0.3 * E) best = Math.max(best, a1 + b1);
+  }
+  if (!(best > 0)) return false;
+  let maxStep = 0, tvFine = 0;
+  for (let i = 1; i < m; i++) { const d = Math.abs(th[i] - th[i - 1]); if (d > maxStep) maxStep = d; tvFine += d; }
+  // real figure 8s are made of smooth loops: no sharp jerks, and little wiggling beyond the two main swings
+  if (tv > 2.3 * best || maxStep > 75 * Math.PI / 180 || tvFine > 1.9 * best) return false;
+  // a figure 8 crosses over itself: the path comes back close to an earlier point (not just the start joining the end)
+  const near = 0.09 * E;
+  for (let i = 0; i < n; i++) for (let j = i + 14; j < n; j++) {
+    if (i === 0 && j === n - 1) continue;
+    if (Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]) < near) return true;
+  }
+  return false;
+}
+
+/* zigzag: a few sharp turns that alternate left/right while the pen makes progress */
+function rdp(p, a, b, eps, keep) {
+  let dmax = 0, idx = -1;
+  const A = p[a], B = p[b], dx = B[0] - A[0], dy = B[1] - A[1], den = Math.hypot(dx, dy) || 1;
+  for (let i = a + 1; i < b; i++) {
+    const dist = Math.abs(dy * (p[i][0] - A[0]) - dx * (p[i][1] - A[1])) / den;
+    if (dist > dmax) { dmax = dist; idx = i; }
+  }
+  if (dmax > eps) { rdp(p, a, idx, eps, keep); keep.push(idx); rdp(p, idx, b, eps, keep); }
+}
+function turnsOf(v) {
+  const t = [];
+  for (let i = 1; i < v.length - 1; i++) {
+    const ax = v[i][0] - v[i - 1][0], ay = v[i][1] - v[i - 1][1], bx = v[i + 1][0] - v[i][0], by = v[i + 1][1] - v[i][1];
+    t.push(Math.atan2(ax * by - ay * bx, ax * bx + ay * by));
+  }
+  return t;
+}
+function isZigzag(pts, L) {
+  const keep = [0]; rdp(pts, 0, pts.length - 1, 0.03 * diag, keep); keep.push(pts.length - 1);
+  let v = keep.map((i) => pts[i]);
+  const gentle = 35 * Math.PI / 180;
+  for (;;) {                                                // forget near-straight "corners"
+    const t = turnsOf(v); let mi = -1, mv = 1e9;
+    t.forEach((x, k) => { if (Math.abs(x) < mv) { mv = Math.abs(x); mi = k; } });
+    if (mi >= 0 && mv < gentle) v.splice(mi + 1, 1); else break;
+  }
+  const t = turnsOf(v);
+  if (t.length < 3) return false;
+  const lo = 60 * Math.PI / 180, hi = 172 * Math.PI / 180;
+  for (let k = 0; k < t.length; k++) {
+    if (Math.abs(t[k]) < lo || Math.abs(t[k]) > hi) return false;
+    if (k && t[k] * t[k - 1] > 0) return false;             // must alternate
+  }
+  const segs = [];
+  for (let i = 1; i < v.length; i++) segs.push(Math.hypot(v[i][0] - v[i - 1][0], v[i][1] - v[i - 1][1]));
+  const inner = segs.slice(1, -1);
+  if (Math.min(...inner) < 0.06 * diag || Math.max(...inner) > 4 * Math.min(...inner)) return false;
+  if (segs[0] < 0.04 * diag || segs[segs.length - 1] < 0.04 * diag) return false;
+  let sum = 0; segs.forEach((s) => { sum += s; });
+  const net = Math.hypot(v[v.length - 1][0] - v[0][0], v[v.length - 1][1] - v[0][1]);
+  return net / sum >= 0.18;
+}
+
+/* ps: [{x,y,t}] recent tip positions. returns 'figure8' | 'zigzag' | null */
+function recognize(ps) {
+  if (ps.length < 12) return null;
+  const pts = resample(smoothPts(ps.map((p) => [p.x, p.y]), 2), 72);
+  if (!pts) return null;
+  let L = 0, minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+  for (let i = 0; i < pts.length; i++) {
+    if (i) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    minx = Math.min(minx, pts[i][0]); maxx = Math.max(maxx, pts[i][0]); miny = Math.min(miny, pts[i][1]); maxy = Math.max(maxy, pts[i][1]);
+  }
+  if (L < 0.3 * diag || Math.max(maxx - minx, maxy - miny) < 0.08 * diag) return null;
+  if (isZigzag(pts, L)) return 'zigzag';
+  if (isFigure8(pts)) return 'figure8';
+  return null;
+}
+
+/* ---------------- state: strokes and the wand's verdict ---------------- */
+let tip = { x: 0, y: 0 }, prevTip = { x: 0, y: 0 }, vel = { x: 0, y: 0 }, speed = 0, lastTip = { x: 0, y: 0 };
+let tracking = false, missed = 0, lastProc = 0, mode = 'red';
+let verdict = 'none';                   // none | chosen | rejected | free
+let target = 'figure8', override = null, revealed = false;
+let stroke = null, strokeCount = 0, lastStrokeEnd = -1e9;
+let running = false, em = 0, boltT = 0, flash = 0, goldFlash = 0, runeT = 0;
+let lastAcquireSound = -1e9, lastVm = 'red';
+let qual = 1, dtEma = 0.016, maxP = 1800;
+
+function rollTarget() {
+  if (cfg.gesture === 'random') target = Math.random() < 0.5 ? 'figure8' : 'zigzag';
+  else if (cfg.gesture !== 'free') target = cfg.gesture;
+}
+const LOST_FRAMES = 5;
+function updateTracking(det, now) {
+  if (det === undefined) return;                                  // same camera frame again: nothing new
+  const dt = Math.max((now - lastProc) / 1000, 0.001); lastProc = now;
+  if (det) {
+    if (!tracking) {
+      tip.x = det.x; tip.y = det.y; prevTip.x = tip.x; prevTip.y = tip.y; vel.x = vel.y = 0; tracking = true;
+    } else { tip.x += (det.x - tip.x) * 0.5; tip.y += (det.y - tip.y) * 0.5; }
+    missed = 0;
+  } else if (tracking && ++missed >= LOST_FRAMES) { tracking = false; speed = 0; }
+  if (tracking) {
+    vel.x = vel.x * 0.6 + ((tip.x - prevTip.x) / dt) * 0.4; vel.y = vel.y * 0.6 + ((tip.y - prevTip.y) / dt) * 0.4;
+    speed = Math.hypot(vel.x, vel.y);
+    prevTip.x = tip.x; prevTip.y = tip.y;
+  }
+}
+
+function startStroke(now) {
+  stroke = { pts: [], len: 0, t0: now, lastT: now, evalT: now, rejected: false, cand: null, candN: 0, decided: verdict === 'chosen' };
+  mode = cfg.element === 'auto' ? ['red', 'blue', 'green'][strokeCount % 3] : cfg.element;
+  if (verdict === 'rejected') verdict = 'none';
+  if (cfg.gesture === 'free' && !override) verdict = 'free'; else if (verdict === 'free') verdict = 'none';
+  onAcquire(now);
+}
+function setChosen(now) { verdict = 'chosen'; stroke.decided = true; stroke.rejected = false; onChosen(now); }
+function setRejected(now) { verdict = 'rejected'; stroke.rejected = true; onReject(now); }
+
+function evaluate(now, final) {
+  if (verdict === 'free' || stroke.decided) return;
+  if (stroke.len < (final ? 0.3 : 0.35) * diag) return;
+  if (override === 'accept') { if (stroke.len >= 0.4 * diag) setChosen(now); return; }
+  if (override === 'reject') { if (!stroke.rejected && (final || stroke.len >= 0.5 * diag)) setRejected(now); return; }
+  let g = null;
+  for (const ms of [1800, 3000, 5000]) {                          // try the last couple of seconds, then longer
+    const w = stroke.pts.filter((p) => now - p.t <= ms);
+    if (w.length < 12) continue;
+    g = recognize(w); if (g) break;
+  }
+  // the same shape must be seen on 3 checks in a row (about a third of a second) so a fleeting accident doesn't count
+  if (!final) { if (g && g === stroke.cand) stroke.candN++; else { stroke.cand = g; stroke.candN = g ? 1 : 0; } }
+  const ready = g && (final || stroke.candN >= 3);
+  if (ready && (target === 'either' || g === target)) setChosen(now);
+  else if (ready || final || now - stroke.t0 > 5000) { if (!stroke.rejected) setRejected(now); }   // wrong shape, stopped, or still flailing after 5s
+}
+
+function trackStrokes(now) {
+  if (tracking) {
+    if (!stroke) startStroke(now);
+    const lp = stroke.pts[stroke.pts.length - 1];
+    const step = lp ? Math.hypot(tip.x - lp.x, tip.y - lp.y) : 0;
+    if (!lp || step >= 2) { stroke.len += step; stroke.pts.push({ x: tip.x, y: tip.y, t: now }); }
+    stroke.lastT = now; lastTip.x = tip.x; lastTip.y = tip.y;
+  }
+  if (stroke) {
+    if (now - stroke.evalT > 120) { stroke.evalT = now; evaluate(now, false); }
+    if (now - stroke.lastT > 500) { evaluate(now, true); stroke = null; strokeCount++; lastStrokeEnd = now; }
+  } else if (verdict === 'chosen' && now - lastStrokeEnd > 3000) verdict = 'none';
+}
+
+/* ---------------- particles ---------------- */
+const P = [], B = [], rings = [];
+let burst = null, banner = null;
+function sp(o) {
+  if (P.length > maxP) return;
+  P.push(Object.assign({ x: 0, y: 0, vx: 0, vy: 0, size: 10, sp: 'gold', type: 'glow', rot: 0, vr: 0,
+                         grav: 0, drag: 0, swirl: 0, grow: 0, a: 1, sway: 0, seed: Math.random() * 100,
+                         col: 'rgba(215,255,200,1)' }, o, { max: o.life }));
+}
+
+function makeRune() {
+  const g = [[0, -1, 0, 1]], n = 1 + ((Math.random() * 3) | 0);
+  for (let i = 0; i < n; i++) {
+    const y = rnd(-1, 0.4), dir = Math.random() < 0.5 ? -1 : 1, dy = rnd(0.4, 0.9) * (Math.random() < 0.5 ? 1 : -1);
+    g.push([0, y, dir * rnd(0.5, 0.8), y + dy]);
+  }
+  if (Math.random() < 0.4) { const y = rnd(-0.4, 0.4); g.push([-0.6, y, 0.6, y]); }
+  return g;
+}
+function spawnRune(x, y, big) {
+  sp({ type: 'rune', x, y, vx: jx() * 20, vy: -rnd(25, 70), life: rnd(2.2, 3.6), size: rnd(18, 40) * (big ? 1.4 : 1),
+       rot: jx() * 0.5, vr: jx() * 0.4, glyph: makeRune(), drag: 0.05 });
+}
+
+function emitFor(m, dt) {
+  const sn = Math.min(speed / diag, 1.5);
+  em += (70 + sn * 420) * dt * qual;
+  const chosenOn = verdict === 'chosen' && m !== 'fizzle';
+  while (em >= 1) {
+    em--;
+    const r = Math.random(), x = tip.x + jx() * 12, y = tip.y + jx() * 12;
+    if (m === 'red') {
+      if (r < 0.55) sp({ x, y, vx: jx() * 90 - vel.x * 0.05, vy: -rnd(40, 170), life: rnd(.5, 1.3), size: rnd(14, 40), sp: 'fire', grav: -30, drag: .8, grow: -8 });
+      else if (r < 0.9) sp({ x, y, vx: jx() * 160, vy: -rnd(60, 280), life: rnd(.8, 1.8), size: rnd(5, 12), sp: 'fireHot', grav: -20, drag: .5, sway: 160 });
+      else sp({ x, y, vx: jx() * 220, vy: jx() * 220, life: rnd(.3, .6), size: rnd(4, 8), sp: 'fireHot', drag: 1.5 });
+    } else if (m === 'blue') {
+      if (r < 0.3) sp({ type: 'crystal', x, y, vx: jx() * 240, vy: jx() * 240 - 20, grav: 140, drag: .6, rot: rnd(0, TAU), vr: jx() * 10, size: rnd(7, 17), life: rnd(.8, 1.7) });
+      else if (r < 0.8) sp({ x, y, vx: jx() * 320, vy: jx() * 320, life: rnd(.3, .7), size: rnd(4, 11), sp: 'iceHot', drag: 1.6 });
+      else sp({ x, y, vx: jx() * 50, vy: jx() * 50, life: rnd(.4, .8), size: rnd(20, 36), sp: 'ice', drag: 1 });
+    } else if (m === 'green') {
+      const a = rnd(0, TAU), v = rnd(60, 150);
+      if (r < 0.3) sp({ type: 'leaf', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, swirl: (Math.random() < .5 ? -1 : 1) * rnd(2.5, 4.5), grav: 25, drag: .35, rot: rnd(0, TAU), vr: jx() * 8, size: rnd(9, 18), life: rnd(1.1, 2.1) });
+      else if (r < 0.55) sp({ type: 'star', x, y, vx: Math.cos(a) * v * .8, vy: Math.sin(a) * v * .8, vr: jx() * 3, size: rnd(7, 15), life: rnd(.6, 1.3), drag: .6 });
+      else sp({ x, y, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40 - 30, swirl: rnd(-3, 3), life: rnd(.5, .95), size: rnd(10, 24), sp: 'leaf', drag: .8 });
+    } else { // fizzle
+      if (r < 0.45) sp({ type: 'smoke', x, y, vx: jx() * 50, vy: -rnd(35, 95), life: rnd(1.1, 2.1), size: rnd(30, 70), grow: rnd(30, 60), a: .38, drag: .5, sp: 'smoke' });
+      else sp({ x, y, vx: jx() * 280, vy: -rnd(20, 140), grav: 280, life: rnd(.35, .85), size: rnd(4, 8), sp: 'gray', a: .8, drag: .4 });
+    }
+    if (chosenOn && Math.random() < 0.3) {
+      if (Math.random() < 0.5) sp({ type: 'star', col: 'rgba(255,232,160,1)', x, y, vx: jx() * 200, vy: jx() * 200 - 40, vr: jx() * 3, size: rnd(6, 14), life: rnd(.6, 1.3), drag: .7 });
+      else sp({ x, y, vx: jx() * 220, vy: jx() * 220 - 40, life: rnd(.5, 1.1), size: rnd(5, 12), sp: 'goldHot', drag: 1 });
+    }
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = P.length - 1; i >= 0; i--) {
+    const p = P[i];
+    p.life -= dt;
+    if (p.life <= 0) { P[i] = P[P.length - 1]; P.pop(); continue; }
+    if (p.swirl) { const c = Math.cos(p.swirl * dt), s = Math.sin(p.swirl * dt); const vx = p.vx * c - p.vy * s; p.vy = p.vx * s + p.vy * c; p.vx = vx; }
+    if (p.sway) p.vx += Math.sin(p.life * 9 + p.seed) * p.sway * dt;
+    p.vx *= Math.max(0, 1 - p.drag * dt); p.vy *= Math.max(0, 1 - p.drag * dt);
+    p.vy += p.grav * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+    if (p.grow) p.size = Math.max(1, p.size + p.grow * dt);
+  }
+  for (let i = B.length - 1; i >= 0; i--) { B[i].life -= dt; if (B[i].life <= 0) B.splice(i, 1); }
+  flash = Math.max(0, flash - dt * 0.6);
+  goldFlash = Math.max(0, goldFlash - dt * 0.5);
+}
+
+function starPath(s) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const r = i % 2 ? s * 0.3 : s, a = i * Math.PI / 4 - Math.PI / 2;
+    i ? ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  ctx.closePath();
+}
+
+function drawParticles() {
+  ctx.globalCompositeOperation = 'source-over';
+  for (const p of P) if (p.type === 'smoke') {
+    ctx.globalAlpha = p.a * (p.life / p.max);
+    ctx.drawImage(S.smoke, p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of P) {
+    if (p.type === 'smoke') continue;
+    const k = p.life / p.max;
+    if (p.type === 'glow') {
+      ctx.globalAlpha = Math.min(1, k * 1.4) * p.a;
+      ctx.drawImage(S[p.sp], p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    } else if (p.type === 'crystal') {
+      const s = p.size;
+      ctx.globalAlpha = Math.min(1, k * 1.5) * 0.5;
+      ctx.drawImage(S.ice, p.x - s * 1.5, p.y - s * 1.5, s * 3, s * 3);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.min(1, k * 1.5);
+      ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(s * .55, 0); ctx.lineTo(0, s); ctx.lineTo(-s * .55, 0); ctx.closePath();
+      ctx.fillStyle = 'rgba(150,210,255,.55)'; ctx.strokeStyle = 'rgba(235,250,255,.95)'; ctx.lineWidth = 1.2;
+      ctx.fill(); ctx.stroke(); ctx.restore();
+    } else if (p.type === 'leaf') {
+      const s = p.size;
+      ctx.globalAlpha = Math.min(1, k * 1.5) * 0.4;
+      ctx.drawImage(S.leaf, p.x - s, p.y - s, s * 2, s * 2);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.globalAlpha = Math.min(1, k * 1.5);
+      ctx.beginPath(); ctx.ellipse(0, 0, s, s * .45, 0, 0, TAU); ctx.fillStyle = 'rgba(70,225,130,.8)'; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-s, 0); ctx.lineTo(s, 0); ctx.strokeStyle = 'rgba(220,255,200,.8)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+    } else if (p.type === 'star') {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.min(1, k * 1.5) * (0.6 + 0.4 * Math.sin(p.life * 30 + p.seed));
+      starPath(p.size); ctx.fillStyle = p.col; ctx.fill(); ctx.restore();
+    } else if (p.type === 'rune') {
+      const a = Math.max(0, Math.min(1, (1 - k) * 5, k * 1.6)), s = p.size;
+      ctx.globalAlpha = a * 0.5;
+      ctx.drawImage(S.gold, p.x - s * 1.4, p.y - s * 1.4, s * 2.8, s * 2.8);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = a * (0.8 + 0.2 * Math.sin(p.life * 12 + p.seed));
+      ctx.strokeStyle = 'rgba(255,228,150,1)'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const g of p.glyph) { ctx.moveTo(g[0] * s * .5, g[1] * s * .5); ctx.lineTo(g[2] * s * .5, g[3] * s * .5); }
+      ctx.stroke(); ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* lightning (ice & lightning magic) */
+function spawnBolt() {
+  const sn = Math.min(speed / diag, 1.5);
+  const a = rnd(0, TAU), len = rnd(70, 220) + sn * 120, n = 8;
+  const dx = Math.cos(a), dy = Math.sin(a), px = -dy, py = dx;
+  const pts = [[tip.x, tip.y]];
+  for (let i = 1; i <= n; i++) {
+    const t = i / n, j = (Math.random() - .5) * 34 * (1 - t * .3);
+    pts.push([tip.x + dx * len * t + px * j, tip.y + dy * len * t + py * j]);
+  }
+  B.push({ pts, life: .14, max: .14 });
+  flash = Math.min(0.12, flash + 0.07);
+}
+function drawBolts() {
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (const b of B) {
+    const k = b.life / b.max;
+    ctx.beginPath(); b.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.strokeStyle = `rgba(90,170,255,${k * 0.5})`; ctx.lineWidth = 10; ctx.stroke();
+    ctx.strokeStyle = `rgba(235,248,255,${k})`; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+  if (flash > 0.003) { ctx.fillStyle = `rgba(120,170,255,${flash})`; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* golden "the wand has chosen you" burst: rings, rays, flash */
+function drawBurst(now) {
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const g = rings[i], age = (now - g.t0) / 1000;
+    if (age > 1.5) { rings.splice(i, 1); continue; }
+    if (age < 0) continue;
+    ctx.strokeStyle = `rgba(255,215,120,${(1 - age / 1.5) * 0.7})`;
+    ctx.lineWidth = 4 + (1 - age / 1.5) * 14;
+    ctx.beginPath(); ctx.arc(g.x, g.y, (age / 1.5) * diag * 0.6, 0, TAU); ctx.stroke();
+  }
+  if (burst) {
+    const age = (now - burst.t0) / 1000;
+    if (age > 2.4) burst = null;
+    else {
+      const a = 1 - age / 2.4, rot = burst.rot + age * 0.35;
+      ctx.fillStyle = `rgba(255,222,140,${a * 0.22})`;
+      for (let i = 0; i < 14; i++) {
+        const ang = rot + i * TAU / 14;
+        ctx.beginPath(); ctx.moveTo(burst.x, burst.y);
+        ctx.lineTo(burst.x + Math.cos(ang - 0.045) * diag, burst.y + Math.sin(ang - 0.045) * diag);
+        ctx.lineTo(burst.x + Math.cos(ang + 0.045) * diag, burst.y + Math.sin(ang + 0.045) * diag);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+  if (goldFlash > 0.003) { ctx.fillStyle = `rgba(255,205,100,${goldFlash})`; ctx.fillRect(0, 0, W, H); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawBanner(now) {
+  if (!banner) return;
+  const age = (now - banner.t0) / 1000;
+  if (age > banner.dur) { banner = null; return; }
+  const a = Math.max(0, Math.min(1, age * 3, (banner.dur - age) * 2));
+  ctx.save();
+  ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = `bold ${banner.size}px Georgia, serif`;
+  ctx.shadowColor = banner.glow; ctx.shadowBlur = 24; ctx.fillStyle = banner.col;
+  ctx.fillText(banner.text, W / 2, H * 0.16 - age * 8);
+  ctx.restore();
+}
+function drawHint(now) {
+  if (stroke || banner || verdict === 'chosen' || now - lastStrokeEnd < 4000) return;
+  ctx.save();
+  ctx.globalAlpha = 0.35 + 0.25 * Math.sin(now / 500); ctx.textAlign = 'center';
+  ctx.font = `italic ${Math.round(Math.min(W * 0.035, 30))}px Georgia, serif`;
+  ctx.fillStyle = '#ffe9a8'; ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
+  ctx.fillText('Wave your wand…', W / 2, H * 0.88);
+  ctx.restore();
+}
+
+/* trailing ribbon */
+const trail = [];
+function drawTrail(now, m) {
+  while (trail.length && now - trail[0].t > 650) trail.shift();
+  if (trail.length < 2) return;
+  const c = MODES[m] || MODES.red;
+  const outer = verdict === 'chosen' && m !== 'fizzle' ? '255,214,120' : c.trail;
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const n = trail.length;
+  for (let i = 1; i < n; i++) {
+    const f = i / n, age = 1 - (now - trail[i].t) / 650;
+    const al = Math.max(0, Math.min(1, f * 0.9, age));
+    ctx.beginPath(); ctx.moveTo(trail[i - 1].x, trail[i - 1].y); ctx.lineTo(trail[i].x, trail[i].y);
+    ctx.strokeStyle = `rgba(${outer},${al * 0.35})`; ctx.lineWidth = 6 + f * 30; ctx.stroke();
+    ctx.strokeStyle = `rgba(${c.core},${al * 0.9})`; ctx.lineWidth = 1.5 + f * 8; ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* glowing wand tip */
+function drawTip(m, now) {
+  if (!tracking) return;
+  const c = MODES[m] || MODES.red, fz = m === 'fizzle';
+  const fl = 0.85 + 0.15 * Math.sin(now * 0.03) + Math.random() * 0.12;
+  const big = m === 'red' ? 130 : m === 'blue' ? 100 : m === 'green' ? 95 : 55;
+  ctx.globalCompositeOperation = 'lighter';
+  if (verdict === 'chosen' && !fz) {                       // golden aura
+    ctx.globalAlpha = 0.45 + 0.2 * Math.sin(now * 0.006);
+    ctx.drawImage(S.gold, tip.x - 100, tip.y - 100, 200, 200);
+  }
+  ctx.globalAlpha = fz ? 0.45 : 0.95;
+  ctx.drawImage(S[c.glow], tip.x - big * fl / 2, tip.y - big * fl / 2, big * fl, big * fl);
+  ctx.globalAlpha = fz ? 0.4 : 1;
+  const core = big * 0.42 * fl;
+  ctx.drawImage(S[c.hot], tip.x - core / 2, tip.y - core / 2, core, core);
+  if (m === 'red') {
+    for (let i = 0; i < 3; i++) {
+      const s = big * 0.5 * rnd(.6, 1);
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(S.fire, tip.x + jx() * 28 - s / 2, tip.y - rnd(6, 26) - s / 2, s, s);
+    }
+  } else if (m === 'green') {
+    for (let i = 0; i < 3; i++) {
+      const a = now * 0.004 * (i + 1) + i * 2.1, s = 14;
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(S.leafHot, tip.x + Math.cos(a) * 36 - s / 2, tip.y + Math.sin(a) * 36 - s / 2, s, s);
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ---------------- Web Audio ---------------- */
+let AC = null, master = null, fxIn = null, noiseBuf = null;
+function initAudio() {
+  if (AC) return;
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return;
+  AC = new Ctor();
+  master = AC.createGain(); master.gain.value = 0.6; master.connect(AC.destination);
+  const dl = AC.createDelay(1); dl.delayTime.value = 0.27;
+  const fb = AC.createGain(); fb.gain.value = 0.38;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+  dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(master);
+  fxIn = dl;
+  noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+  const ch = noiseBuf.getChannelData(0);
+  for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+}
+/* iOS mutes Web Audio on the silent switch unless a media element is "playing"; this quiet loop avoids that */
+function startSilentAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  try {
+    const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, 'RIFF'); v.setUint32(4, 36 + n, true); ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); ws(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+    a.loop = true; a.play().catch(() => {});
+  } catch (e) {}
+}
+function out(node, send) {
+  node.connect(master);
+  const sg = AC.createGain(); sg.gain.value = send; node.connect(sg); sg.connect(fxIn);
+}
+function tone(freq, t0, dur, vol, type, send) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); out(g, send); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function chime(m) {
+  if (!AC) return;
+  const roots = { red: 392, blue: 659.25, green: 523.25 }, sc = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3, 2];
+  const r = roots[m] || 523.25, t = AC.currentTime;
+  [0, 2, 3, 5].forEach((idx, i) => {
+    const f = r * sc[idx];
+    tone(f, t + i * 0.075, 1.3, 0.16, 'triangle', 0.7);
+    tone(f * 2, t + i * 0.075, 0.9, 0.05, 'sine', 0.7);
+    tone(f * 3.01, t + i * 0.075, 0.5, 0.02, 'sine', 0.7);
+  });
+}
+function whoosh(m, vol, pan) {
+  if (!AC) return;
+  const t = AC.currentTime, fz = m === 'fizzle';
+  const src = AC.createBufferSource(); src.buffer = noiseBuf; src.playbackRate.value = rnd(.8, 1.2);
+  const f = AC.createBiquadFilter();
+  let f0, f1, dur;
+  if (fz) { f.type = 'lowpass'; f.Q.value = 0.7; f0 = 700; f1 = 200; dur = 0.25; vol *= 0.7; }
+  else {
+    f.type = 'bandpass'; f.Q.value = 1.1; dur = 0.4;
+    [f0, f1] = m === 'red' ? [250, 1400] : m === 'blue' ? [900, 4200] : [500, 2800];
+  }
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + (fz ? 0.2 : 0.28));
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g);
+  if (AC.createStereoPanner) { const pn = AC.createStereoPanner(); pn.pan.value = pan; g.connect(pn); out(pn, fz ? 0.05 : 0.25); }
+  else out(g, fz ? 0.05 : 0.25);
+  src.start(t, Math.random() * 1.4, dur + 0.1); src.stop(t + dur + 0.1);
+}
+function sparkle(m) {
+  if (!AC) return;
+  const t = AC.currentTime;
+  if (m === 'fizzle') { tone(rnd(180, 260), t, 0.08, 0.05, 'triangle', 0); return; }
+  const hi = m === 'blue' ? 1.4 : 1;
+  for (let i = 0; i < 3; i++) tone(rnd(2200, 5400) * hi, t + i * 0.04 + Math.random() * 0.03, 0.18, 0.05, 'sine', 0.8);
+}
+function fizzleWah() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  [0, 4].forEach((det) => {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(330 + det, t); o.frequency.exponentialRampToValueAtTime(150, t + 0.6);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.1, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
+    o.connect(g); out(g, 0.1); o.start(t); o.stop(t + 0.7);
+  });
+}
+function shimmer() {                       // quiet "the wand is listening" sound
+  if (!AC) return;
+  const t = AC.currentTime;
+  tone(659.25, t, 0.9, 0.06, 'sine', 0.8); tone(987.77, t + 0.12, 0.9, 0.05, 'sine', 0.8);
+}
+function fanfare() {                       // the wand has chosen you
+  if (!AC) return;
+  const t = AC.currentTime;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.9);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.35, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1);
+  o.connect(g); out(g, 0.2); o.start(t); o.stop(t + 1.1);
+  whoosh('green', 0.45, 0);
+  [523.25, 659.25, 783.99, 1046.5, 1318.5, 1568].forEach((f, i) => {
+    const tt = t + 0.05 + i * 0.09;
+    tone(f, tt, 2.4, 0.17, 'triangle', 0.9); tone(f * 2, tt, 1.6, 0.06, 'sine', 0.9); tone(f * 3.01, tt, 0.8, 0.025, 'sine', 0.9);
+  });
+  [523.25, 659.25, 783.99, 1046.5].forEach((f) => tone(f, t + 0.6, 3.2, 0.09, 'sine', 0.9));
+  for (let i = 0; i < 14; i++) tone(rnd(2500, 6200), t + 0.2 + i * 0.09 + Math.random() * 0.05, 0.2, 0.045, 'sine', 0.8);
+}
+let lastSpark = 0, lastWhoosh = 0, lastChime = 0;
+function audioTick(now, m) {
+  if (!AC || !tracking) return;
+  const sn = speed / diag, pan = Math.max(-1, Math.min(1, (tip.x / W) * 2 - 1));
+  if (sn > 0.22 && now - lastSpark > 110) { lastSpark = now; sparkle(m); }
+  if (sn > 0.5 && now - lastWhoosh > 240) { lastWhoosh = now; whoosh(m, Math.min(0.5, 0.12 + sn * 0.3), pan); }
+  if (sn > 0.9 && now - lastChime > 1100 && m !== 'fizzle') { lastChime = now; chime(m); }
+}
+
+/* ---------------- moments ---------------- */
+function onAcquire(now) {
+  if (!AC || now - lastAcquireSound < 1200) return;
+  lastAcquireSound = now;
+  if (cfg.gesture === 'free' && !override) chime(mode); else shimmer();
+}
+function onChosen(now) {
+  const x = lastTip.x, y = lastTip.y;
+  for (let i = 0; i < 260; i++) {
+    const a = rnd(0, TAU), v = rnd(150, 950);
+    sp({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rnd(.8, 1.9), size: rnd(8, 28), sp: Math.random() < .5 ? 'gold' : 'goldHot', drag: 1.3 });
+  }
+  for (let i = 0; i < 45; i++) {
+    const a = rnd(0, TAU), v = rnd(100, 600);
+    sp({ type: 'star', col: 'rgba(255,232,160,1)', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vr: jx() * 4, size: rnd(8, 20), life: rnd(1, 2), drag: 1 });
+  }
+  rings.push({ x, y, t0: now }, { x, y, t0: now + 250 }, { x, y, t0: now + 500 });
+  burst = { x, y, t0: now, rot: rnd(0, TAU) };
+  goldFlash = 0.6;
+  for (let i = 0; i < 12; i++) spawnRune(x + jx() * W * 0.6, y + jx() * H * 0.4, true);
+  banner = { text: 'The wand has chosen you!', t0: now, dur: 4, size: Math.round(Math.min(W * 0.065, 72)), col: '#ffe9a8', glow: '#ffb840' };
+  fanfare();
+}
+function onReject(now) {
+  const x = lastTip.x, y = lastTip.y;
+  for (let i = 0; i < 30; i++) {
+    sp({ type: 'smoke', x: x + jx() * 30, y: y + jx() * 30, vx: jx() * 140, vy: -rnd(20, 110), life: rnd(1.2, 2.4), size: rnd(40, 90), grow: rnd(40, 80), a: .4, drag: .6, sp: 'smoke' });
+  }
+  for (let i = 0; i < 20; i++) sp({ x, y, vx: jx() * 380, vy: -rnd(20, 220), grav: 300, life: rnd(.4, .9), size: rnd(4, 8), sp: 'gray', a: .8, drag: .4 });
+  banner = { text: 'The wand does not choose you…', t0: now, dur: 3, size: Math.round(Math.min(W * 0.05, 56)), col: '#c9c9d2', glow: '#555566' };
+  whoosh('fizzle', 0.35, 0);
+  fizzleWah();
+}
+
+/* ---------------- main loop ---------------- */
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const rdt = (now - last) / 1000, dt = Math.min(rdt, 0.05); last = now;
+  dtEma = dtEma * 0.95 + rdt * 0.05;
+  if (dtEma > 0.028) qual = Math.max(0.35, qual - 0.01); else if (dtEma < 0.02) qual = Math.min(1, qual + 0.004);
+  maxP = Math.floor(300 + 1500 * qual);
+  ctx.clearRect(0, 0, W, H);
+  drawMotes(now, dt);
+  if (!running) return;
+
+  updateTracking(getDetection(now), now);
+  trackStrokes(now);
+
+  let vm = lastVm;
+  if (tracking) {
+    vm = (override === 'reject' && stroke && stroke.len > 0.2 * diag) || verdict === 'rejected' ? 'fizzle' : mode;
+    lastVm = vm;
+    emitFor(vm, dt); trail.push({ x: tip.x, y: tip.y, t: now });
+    if (vm === 'blue') {
+      boltT -= dt;
+      if (boltT <= 0) { spawnBolt(); boltT = Math.max(0.05, 0.28 - Math.min(speed / diag, 1) * 0.2 + Math.random() * 0.12); }
+    }
+    if (verdict === 'chosen') {
+      runeT -= dt;
+      if (runeT <= 0) {
+        runeT = rnd(0.25, 0.5);
+        if (Math.random() < 0.6) spawnRune(tip.x + jx() * 280, tip.y + jx() * 200, false);
+        else spawnRune(rnd(W * 0.1, W * 0.9), rnd(H * 0.5, H), false);
+      }
+    }
+  }
+  updateParticles(dt);
+  drawParticles(); drawTrail(now, vm); drawBolts(); drawTip(vm, now); drawBurst(now); drawBanner(now); drawHint(now);
+  audioTick(now, vm);
+}
+requestAnimationFrame(frame);
+
+/* ---------------- grown-up panel ---------------- */
+const panel = $('panel');
+function resetVerdict() { verdict = 'none'; if (stroke) { stroke.decided = false; stroke.rejected = false; } }
+function setOverride(v) {
+  override = v;
+  $('dot').classList.toggle('reject', v === 'reject'); $('dot').classList.toggle('accept', v === 'accept');
+  resetVerdict(); refreshPanel();
+}
+function newWizard() { rollTarget(); resetVerdict(); revealed = false; toast('A new wizard approaches…'); refreshPanel(); }
+function targetName() { return target === 'figure8' ? 'figure 8' : target === 'zigzag' ? 'zigzag' : 'figure 8 or zigzag'; }
+function refreshPanel() {
+  document.querySelectorAll('#gestBtns button').forEach((b) => b.classList.toggle('on', b.dataset.g === cfg.gesture));
+  document.querySelectorAll('#ovBtns button').forEach((b) => b.classList.toggle('on', b.dataset.o === (override || 'none')));
+  document.querySelectorAll('#elBtns button').forEach((b) => b.classList.toggle('on', b.dataset.e === cfg.element));
+  $('camFront').classList.toggle('on', cfg.facing === 'front'); $('camRear').classList.toggle('on', cfg.facing === 'rear');
+  $('mirrorBtn').textContent = 'Mirror: ' + (cfg.mirror ? 'on' : 'off');
+  $('sensVal').textContent = Math.round(cfg.sens * 100) + '%';
+  $('chosenLbl').textContent = revealed ? (cfg.gesture === 'free' ? 'free play' : targetName()) : '••••';
+  $('dbgBtn').classList.toggle('on', debug); $('dotBtn').textContent = cfg.dotHidden ? 'Show status dot' : 'Hide status dot';
+}
+function openPanel() { refreshPanel(); panel.hidden = false; }
+function closePanel() { panel.hidden = true; }
+
+document.querySelectorAll('#gestBtns button').forEach((b) => b.addEventListener('click', () => {
+  cfg.gesture = b.dataset.g; saveCfg(); rollTarget(); resetVerdict(); revealed = false; refreshPanel();
+}));
+document.querySelectorAll('#ovBtns button').forEach((b) => b.addEventListener('click', () => setOverride(b.dataset.o === 'none' ? null : b.dataset.o)));
+document.querySelectorAll('#elBtns button').forEach((b) => b.addEventListener('click', () => { cfg.element = b.dataset.e; saveCfg(); refreshPanel(); }));
+$('newWizard').addEventListener('click', newWizard);
+$('reveal').addEventListener('click', () => { revealed = !revealed; refreshPanel(); });
+$('camFront').addEventListener('click', () => switchCamera('front'));
+$('camRear').addEventListener('click', () => switchCamera('rear'));
+$('mirrorBtn').addEventListener('click', () => { cfg.mirror = !cfg.mirror; saveCfg(); applyMirror(); prevL = null; refreshPanel(); });
+$('sensMinus').addEventListener('click', () => { cfg.sens = Math.max(0, +(cfg.sens - 0.1).toFixed(2)); saveCfg(); refreshPanel(); });
+$('sensPlus').addEventListener('click', () => { cfg.sens = Math.min(1, +(cfg.sens + 0.1).toFixed(2)); saveCfg(); refreshPanel(); });
+$('dbgBtn').addEventListener('click', () => { debug = !debug; dbg.style.display = debug ? 'block' : 'none'; refreshPanel(); });
+$('dotBtn').addEventListener('click', () => { cfg.dotHidden = !cfg.dotHidden; saveCfg(); $('dot').classList.toggle('hidden', cfg.dotHidden); refreshPanel(); });
+$('closeBtn').addEventListener('click', closePanel);
+
+let taps = [];
+$('hot').addEventListener('pointerdown', () => {
+  const t = performance.now(); taps = taps.filter((x) => t - x < 900); taps.push(t);
+  if (taps.length >= 3) { taps = []; openPanel(); }
+});
+
+addEventListener('keydown', (e) => {
+  const k = e.key;
+  if (k === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) setOverride(override === 'reject' ? null : 'reject'); }
+  else if (k === 'g' || k === 'G') setOverride(override === 'accept' ? null : 'accept');
+  else if (k === 'ArrowUp') { e.preventDefault(); cfg.sens = Math.min(1, +(cfg.sens + 0.1).toFixed(2)); saveCfg(); toast('Sensitivity ' + Math.round(cfg.sens * 100) + '%'); }
+  else if (k === 'ArrowDown') { e.preventDefault(); cfg.sens = Math.max(0, +(cfg.sens - 0.1).toFixed(2)); saveCfg(); toast('Sensitivity ' + Math.round(cfg.sens * 100) + '%'); }
+  else if (k === 'd' || k === 'D') { debug = !debug; dbg.style.display = debug ? 'block' : 'none'; }
+  else if (k === 'm' || k === 'M') { mouseMode = !mouseMode; toast(mouseMode ? 'Mouse wand on: draw the shape with the mouse' : 'Camera wand on'); }
+  else if (k === '1') { cfg.element = 'red'; saveCfg(); toast('Magic: fire'); }
+  else if (k === '2') { cfg.element = 'green'; saveCfg(); toast('Magic: leaves'); }
+  else if (k === '3') { cfg.element = 'blue'; saveCfg(); toast('Magic: ice & lightning'); }
+  else if (k === '0') { cfg.element = 'auto'; saveCfg(); toast('Magic: auto'); }
+  else if (k === 'h' || k === 'H') { cfg.dotHidden = !cfg.dotHidden; saveCfg(); $('dot').classList.toggle('hidden', cfg.dotHidden); }
+  else if (k === 'n' || k === 'N') newWizard();
+  else if (k === 'a' || k === 'A') { panel.hidden ? openPanel() : closePanel(); }
+  else if (k === 'f' || k === 'F') {
+    if (document.fullscreenElement) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+  }
+});
+
+/* ---------------- camera + start ---------------- */
+let stream = null, wakeLock = null;
+function applyMirror() { video.style.transform = cfg.mirror ? 'scaleX(-1)' : 'none'; }
+async function startCamera(which) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Camera API unavailable (needs HTTPS)');
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: which === 'front' ? 'user' : 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
+  });
+  cfg.facing = which; saveCfg();
+  video.muted = true; video.srcObject = stream; await video.play(); sizeDetect(); applyMirror();
+}
+async function switchCamera(which) {
+  try { await startCamera(which); mouseMode = false; refreshPanel(); }
+  catch (err) { toast('Could not switch camera: ' + err.message); }
+}
+async function lockScreen() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { if (running) lockScreen(); if (AC && AC.state === 'suspended') AC.resume(); }
+});
+
+async function startApp(which) {
+  $('beginRear').disabled = $('beginFront').disabled = true;
+  initAudio(); startSilentAudio();
+  if (AC && AC.state === 'suspended') AC.resume();
+  try { await startCamera(which); }
+  catch (err) {
+    mouseMode = true;
+    $('err').textContent = 'Camera unavailable (' + err.message + '). Starting in mouse-wand mode: draw the shape with the mouse.';
+    await new Promise((r) => setTimeout(r, 1800));
+  }
+  rollTarget();
+  $('dot').classList.toggle('hidden', cfg.dotHidden);
+  $('intro').style.display = 'none';
+  running = true; lastStrokeEnd = performance.now(); lockScreen();
+}
+applyMirror();
+$('beginRear').addEventListener('click', () => startApp('rear'));
+$('beginFront').addEventListener('click', () => startApp('front'));
+</script>
 </body>
 </html>
