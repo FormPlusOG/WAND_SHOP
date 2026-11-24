@@ -1,36 +1,47 @@
-# The Wand Shop: magic mirror wand-testing station
+# The Wand Shop: magic mirror wand-testing station (motion version)
 
 A single web page (`index.html`) that turns an iPhone (or any device with a camera) into a magic mirror.
-The child waves a stick with a coloured tip and leaves a glowing trail. The wand secretly "chooses" or
-"rejects" them.
+The child waves a stick and leaves a glowing trail of magic. The wand only **chooses the wizard** when they
+trace the **secret movement**: a **figure 8** or a **zigzag**. Any other movement and the wand fizzles.
+
+No colours or coloured tape are needed: the mirror follows whatever is *moving*.
 
 ## Room setup
 
-1. **The table.** Lay out three sticks, each with a bright coloured tip (red, blue, green tape or an LED).
-   Print `wand-labels.html` and put a card beside each wand:
-   - Red: *Dragon Heartstring, great for fireballs* (fire and embers)
-   - Blue: *Phoenix Feather, master of lightning and ice* (lightning bolts and ice crystals)
-   - Green: *Unicorn Mane, keeper of healing and leaves* (emerald leaves and stars)
-2. **The mirror.** Prop the iPhone near the TV (landscape) and screen-mirror it to the TV (AirPlay).
-   The child stands in front and sees themselves on the TV, mirrored.
-3. **The magic.** Waving a wand leaves a glowing trail with sounds that react to speed.
+1. **The table.** Lay out a few sticks with the printable cards from `wand-labels.html` (Dragon Heartstring,
+   Phoenix Feather, Unicorn Mane). Any stick works, because the mirror follows the movement.
+2. **The mirror.** Prop the iPhone up **so it cannot move** (a stand, a stack of books). Screen-mirror it to the
+   TV (AirPlay). The child stands a few steps back so arm and wand fit in the picture, and sees themselves
+   mirrored on the TV.
+3. **The magic.** Waving leaves a glowing trail with sounds that react to speed. The magic style
+   (fire, ice and lightning, or leaves) changes with each new wave. You can lock one in the grown-up panel.
 4. **The wand chooses the wizard.**
-   - The grown-up secretly sets which colour is "the one" (or leaves it on *Random*).
-   - Wrong wand: after a moment of the wand "considering", grey smoke, a dull fizzle and
-     "The wand does not choose you...".
-   - Right wand: golden explosion, shockwave rings, light rays, chimes, floating runes and
-     "The wand has chosen you!". Afterwards the wand keeps golden sparkles and runes while it is waved.
-   - Next child? Triple-tap the hidden corner and tap **New wizard** to re-roll.
+   - The grown-up secretly picks the movement (Figure 8, Zigzag, Either, or Random for each new child).
+   - Right movement: golden explosion, shockwave rings, light rays, chimes, floating runes and
+     "The wand has chosen you!". Gold sparkles and runes keep floating while they wave.
+   - Wrong movement: grey smoke, a sad "wah" and "The wand does not choose you...". This happens when they stop
+     waving, or after about 5 seconds of waving the wrong way (and they can still win by then doing the right one).
+   - Next child? Triple-tap the hidden corner and tap **New wizard**.
+
+## What counts as the secret movement
+
+- **Figure 8:** two smooth loops, one clockwise and one anticlockwise, any size, any tilt, any speed. About one and
+  a half figure 8s is the sweet spot; a single one often works.
+- **Zigzag:** at least four sharp back-and-forth strokes (like a lightning bolt or a row of mountains) that travel
+  across the screen. A single "Z" (three strokes) doesn't count.
+- Circles, straight waves, jabs, shaking side to side and wild scribbles don't count.
+- A big wavy line can look like a zigzag to the mirror, so treat that as a possible "accident".
 
 ## Hidden grown-up controls
 
-Triple-tap the **bottom-left corner** of the screen (or press **A** on a keyboard). The panel lets you:
-choose the chosen colour (Random / Red / Green / Blue / Free play), re-roll, **force reject**,
-switch front/rear camera, mirror on/off, sensitivity, **calibrate** each tip colour and show a debug view.
-Settings are remembered on that device.
+Triple-tap the **bottom-left corner** of the screen (or press **A** on a keyboard). You can:
+choose the secret movement and re-roll, **Reveal** it (privately), force **Always choose** or **Always reject**,
+choose the magic style, switch front/rear camera, flip the mirror, change motion sensitivity and show a debug view
+of what the mirror sees. A tiny dot in the bottom-left corner turns grey when "Always reject" is on and white
+when "Always choose" is on (hide it with **H** or in the panel).
 
-Keyboard shortcuts: Space force reject, N new wizard, Up/Down sensitivity, D debug, H hide status dot,
-M mouse wand (1/2/3 pick colour), F full screen.
+Keyboard: Space always reject, G always choose, N new wizard, Up/Down sensitivity, D debug, H hide dot,
+M mouse wand (draw the shape with the mouse to test), 0/1/2/3 magic style, F full screen.
 
 ## Publish on GitHub Pages
 
@@ -45,15 +56,17 @@ M mouse wand (1/2/3 pick colour), F full screen.
 
 - Switch off the ring/silent switch and turn the volume up. The page also plays a silent loop so iOS lets
   the sounds through.
-- Use landscape, and turn off rotation lock if needed.
-- *Share -> Add to Home Screen* gives a full-screen view without Safari's toolbars.
-- The screen is kept awake while the app runs.
-- The rear camera has better quality. The picture is mirrored by default so it behaves like a mirror.
+- Use landscape. *Share -> Add to Home Screen* gives a full-screen view. The screen is kept awake while it runs.
+- Keep the phone **completely still**. A moving camera looks like everything moving.
 
-## Getting reliable tip detection
+## Getting reliable tracking
 
-- Use **bright, saturated** colours (neon tape, glossy tape or tiny LEDs) and light the child's area well.
-- Keep other saturated colours (red jumpers, green toys) out of frame.
-- Run **Calibrate** for each colour in the grown-up panel: hold the tip in the circle for 3 seconds.
-- If it misses tips, raise sensitivity. If it picks up the wrong things, lower it. The debug view shows what
-  the tracker sees.
+- Good, even lighting and a plain background help. Avoid TVs, fans or other things moving behind the child.
+- Only **one person** in the picture at a time, and make big, clear arm movements (a figure 8 about the size of a
+  dinner plate or bigger).
+- The mirror follows the moving "blob" (wand plus hand), not the exact wand tip, so use your whole arm rather than
+  just wrist flicks.
+- If it misses movements, raise **motion sensitivity** in the panel. If it follows the wrong things, lower it.
+  The debug view (D) shows the movement the mirror sees.
+- Not tested on real cameras yet: do a trial run with a few practice waves before the party, and adjust
+  sensitivity as needed.
